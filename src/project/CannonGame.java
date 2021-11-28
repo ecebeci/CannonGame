@@ -265,6 +265,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 			g2.fill(liveShape.get(i));
 		}
 		
+		// TODO: Can inince oyunu durdurup ekran cikar
         if(lives < 1) {
         	score = 0;
             lives = 5;
@@ -346,7 +347,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 				cannonBallY = cannonBallYTemp;	
 				i++;
 				
-			} else { //  if symmetrical shoot ended, the ball must continue to fall down platform. (it loops)
+			} else { //  if symmetrical shoot ended, the ball must continue to fall down platform. (it loops until collapsed)
 				cannonBallXTemp = cannonBallX + shootWidthInterval;
 				cannonBallYTemp = cannonBallY + shootHeightInterval;
 				ballLineList.add(new Line2D.Double(cannonBallX,cannonBallY,cannonBallXTemp,cannonBallYTemp));
