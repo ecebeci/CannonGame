@@ -111,12 +111,16 @@ public class CannonGame extends JFrame implements ActionListener {
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // constant class tan hmm
 		JPanel panel = gamePanel;
 		
-		//frame.getContentPane().add(panel);
-		
-		frame.setLayout(new BorderLayout());
-		frame.add(panel, BorderLayout.CENTER);
+		frame.getContentPane().add(panel);
 		frame.pack(); // fits frame to panel object dimension size
 		frame.setLocationRelativeTo(null); // center position of screen
+		
+		URL iconPath = CannonGame.class.getResource("/resources/icon.png");
+		try {
+			frame.setIconImage(ImageIO.read(iconPath));
+			} catch (IOException ex) {
+			     ex.printStackTrace();
+		}	
 		
 		frame.setVisible(true);	
 	}
