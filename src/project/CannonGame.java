@@ -1,26 +1,21 @@
 /* Muhammet Emre Cebeci 1705950
  * 2021 - December
- * TODO: Slider ile guc cubugu ekle , container ile altta olabilir belki. printer orneginde vardi
+ * TODO: Slider ile guc cubugu ekle , container ile altta olabilir belki. printer orneginde vardi veya guc cubugu cizersin dikdortgenden asagi ve yukari onun gucunu ayarlar
  * TODO: Dusman ( hatta dusmanlar) custom shape ekle iyi puan olur, shape icinde clipping stroke vs
- * TODO: Dusman olunce image process li animasyon
+ * TODO: Dusmana vurunca ayri olunca ayri image process li animasyon
  * TODO: Arkaplan ekle 
  * TODO: Cannon sekil kontrolu et
  * TODO: Fazla variableleri sil
+ * TODO: Splash screen ayarla
+ * TODO: Firlatma acisini ve sekil niye cannon iken platforma degemiyor ogren
+ * TODO: Anti aliasing 
+ * TODO: Kalp sekli yerine top sekli olabilir veya ayrintili bir sey hmm
  * */
 
 package project;
 
 import java.awt.*;
-import java.awt.Color;
-import java.awt.Container;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Point;
-import java.awt.Shape;
-import java.awt.TexturePaint;
+import java.awt.BorderLayout;
 import java.awt.color.ColorSpace;
 import java.awt.event.*;
 import java.awt.font.FontRenderContext;
@@ -44,12 +39,6 @@ import java.awt.geom.*;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JPanel;
 import javax.swing.event.MenuKeyListener;
 
 import java.awt.print.*;
@@ -58,19 +47,79 @@ import java.awt.print.*;
 public class CannonGame extends JFrame implements ActionListener {
 	
 	static GamePanel gamePanel = new GamePanel(0,0,1200,400,50);
+	static JFrame splashFrame;
 	PrinterJob pj;
-
 	
 	public static void main(String[] args) {
-		JFrame frame = new CannonGame(); // Drawing Menubar
+
+		splashFrame = new JFrame();
+		splashFrame.setUndecorated(true); 
+
+		splashFrame.setLayout(new BorderLayout()); 
+
+		JPanel panel = new SplashPanel(); 
+											
+		splashFrame.add(panel, BorderLayout.CENTER);
+
+		JButton btn = new JButton("Start the Game");
+		splashFrame.add(btn, BorderLayout.SOUTH);
+
+		btn.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				createApplicationFrame();
+			}
+		});
+
+		panel.addMouseListener(new MouseListener() {
+
+			@Override
+			public void mouseReleased(MouseEvent e) {
+			}
+
+			@Override
+			public void mousePressed(MouseEvent e) {
+				createApplicationFrame();
+			}
+
+			@Override
+			public void mouseExited(MouseEvent e) {
+			}
+
+			@Override
+			public void mouseEntered(MouseEvent e) {
+			}
+
+			@Override
+			public void mouseClicked(MouseEvent e) {
+			}
+		});
+
+		splashFrame.pack();
+		splashFrame.setLocationRelativeTo(null); // Set location to the center of screen
+
+		splashFrame.setVisible(true); // Set visibility
+		
+		}
+	
+	public static void createApplicationFrame() {
+		splashFrame.dispose(); // dispose the splash screen frame
+
+		JFrame frame = new CannonGame(); // To Drawing MenuBar
 		frame.setTitle("Cannon Game TEST");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // constant class tan hmm
-		
 		JPanel panel = gamePanel;
-		frame.getContentPane().add(panel);
+		
+		//frame.getContentPane().add(panel);
+		
+		frame.setLayout(new BorderLayout());
+		frame.add(panel, BorderLayout.CENTER);
 		frame.pack(); // fits frame to panel object dimension size
+		frame.setLocationRelativeTo(null); // center position of screen
+		
 		frame.setVisible(true);	
-		}
+	}
 	
 	public CannonGame() {
 		JMenuBar mb = new JMenuBar();
@@ -92,6 +141,7 @@ public class CannonGame extends JFrame implements ActionListener {
 		menu = new JMenu("Developer Menu");
 	    mb.add(menu);
 	    
+	    // Set up for printing
 	    pj = PrinterJob.getPrinterJob();
 	    pj.setPrintable(gamePanel);
 	   
@@ -119,22 +169,23 @@ public class CannonGame extends JFrame implements ActionListener {
 
 }
 
-class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener, MouseMotionListener, Printable { // inheritance
+class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener, MouseMotionListener, Printable { 
 	// === Area of the plot ===
 	int x0;
 	int y0;
 	double width;
 	double height;
 	double platformX = 0;
-	double platformY; // inside
-	// int platformWidth;
+	double platformY; 
+	// double platformWidth;
 	double platformHeight;
 
-	
-	Shape ball = null;
+	// === Shapes === 
 	Shape player = null;
+	Shape cannonBall = null;
 	Shape platform = null;
 	
+	// == Cannon == 
 	double cannonX;
 	double cannonY;
 	double cannonWidth = 70;
@@ -143,42 +194,38 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	AffineTransform at = new AffineTransform();
 	boolean keyPressed = false;
 	
+	// == To Calculate Angle of Cannon == 
+	Point p1;
+	Point p = null;
+	
+	// == Shooting ==
 	int sample = 500; // draw sample 
-	double shootHeight = 200; // power!
+	int i = 0;
+	List<Line2D> shootingLineList = new ArrayList<>(); // Drawing Lines of shootingLine
+	double shootHeight = 200; // TODO: Must be setting by slider or sth like that
 	double shootHeightInterval;
 	double shootWidth;
 	double shootWidthInterval;
-	double cannonBallX = -50;
-	double cannonBallY = -50;
+
+	// == Cannon Ball ==
+	boolean isCannonBallShooted;
+	boolean isCannonBallVisible = false;
+	double cannonBallX = 0;
+	double cannonBallY = 0;
 	double cannonBallXTemp;
 	double cannonBallYTemp;
 	double cannonBallWidth = 20;
 	double cannonBallHeight = 20;
 	
-	int i = 0;
-	int r = 100;
-
-	int x1 = (int) (r * Math.cos(0));
-	int y1 = (int) (r * Math.sin(0));
-	int x2 = 0;
-	int y2 = 0;
-	
-	boolean isCannonBallShooted;
-	
-	List<Line2D> ballLineList = new ArrayList<>();
-	
+	// == Platform == 
 	BufferedImage brickImage = null;
 	
+	// == Live and Score ==
 	int score = 0;
 	int lives = 5;
-	
 	List<Shape> liveShape = new ArrayList<>();
 	int heartWidth = 50;
 	int heartHeight = 50;
-	
-	
-	Point p1;
-	Point p = null;
 
 
 	public GamePanel(int x, int y, int width, int height, int platformHeight) {
@@ -194,7 +241,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		cannonX = cannonWidth;
 		cannonY = platformY-cannonHeight;
 		
-		URL urlBrick = getClass().getClassLoader().getResource("assets/brick.png");
+		URL urlBrick = getClass().getClassLoader().getResource("resources/brick.png");
 		try {
 		   brickImage = ImageIO.read(urlBrick);
 		} catch (IOException ex) {
@@ -241,12 +288,14 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		
 		
 		// Draw Cannon Ball and Line
-		ball = new Ellipse2D.Double(cannonBallX - cannonBallWidth/2, cannonBallY - cannonBallHeight/2, cannonBallWidth, cannonBallHeight);
-		g2.fill(ball);
-		g2.draw(ball.getBounds());
+		if(isCannonBallVisible) {
+			cannonBall = new Ellipse2D.Double(cannonBallX - cannonBallWidth/2, cannonBallY - cannonBallHeight/2, cannonBallWidth, cannonBallHeight);
+			g2.fill(cannonBall);
+			//g2.draw(ball.getBounds());
+		}
 		
-		for(int i = 0 ; i< ballLineList.size() ;i++) {
-		    g2.draw(ballLineList.get(i));
+		for(int i = 0 ; i< shootingLineList.size() ;i++) {
+		    g2.draw(shootingLineList.get(i));
 		}
 		
 		// Drawing Score Label (Responsively for number digit changes with frc)
@@ -271,7 +320,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
             lives = 5;
         }
 		
-		// Draw Brick Platform
+		// Paint Platform with Brick Texture
 		TexturePaint tp = new TexturePaint(brickImage, new Rectangle2D.Double(0, platformY, 25, 25));
 		g2.setPaint(tp);
 		
@@ -282,6 +331,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	    
 	}
 	
+	// === Animation and Checking Collision Thread ===
 	@Override
 	public void run() {
 		while(true) {
@@ -299,6 +349,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		}
 	}
 	
+	//checkPanelLimits for player
 	private void checkPanelLimits() {
 		if(cannonX < 0) {  // en kosedeyken merkezden r cikarirsan sinir olur hmm! cizdim
 			cannonX = 0; // sinira geri goturur
@@ -312,7 +363,8 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	private void checkBallShooting() {	
 		if(isCannonBallShooted) { 
 			if(i == 0) {
-				ballLineList.clear();
+				shootingLineList.clear();
+				isCannonBallVisible = true;
 				
 				//For first iterator
 				cannonBallX = cannonX + cannonWidth;
@@ -325,11 +377,10 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 				// shootHeight= // TODO: Setting power
 				shootWidthInterval = shootWidth / sample ;
 				shootHeightInterval = shootHeight / sample;
-				System.out.println("Shoot Activated"+" shootWidth"+ shootWidth+" shootWidthInterval "+shootWidthInterval);
-				System.out.println("Shoot Activated"+" shootHeight"+ shootHeight+" shootWidthInterval "+shootHeightInterval);
+				System.out.println("Shoot Activated "+" shootWidth "+ shootWidth+" shootWidthInterval "+shootWidthInterval);
+				System.out.println("shootHeight "+ shootHeight+" shootWidthInterval "+shootHeightInterval);
 				i++;
 			}
-			
 			if(i < sample) { // kinetic shoot with symmetrical rising and falling
 				
 				cannonBallXTemp = cannonBallX + shootWidthInterval;
@@ -340,7 +391,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 					cannonBallYTemp = cannonBallY + shootHeightInterval;
 				}
 				
-				ballLineList.add(new Line2D.Double(cannonBallX,cannonBallY,cannonBallXTemp,cannonBallYTemp));
+				shootingLineList.add(new Line2D.Double(cannonBallX,cannonBallY,cannonBallXTemp,cannonBallYTemp));
 				
 				//System.out.println("Line 2D "+cannonBallX+" "+cannonBallY+" "+cannonBallXTemp+" "+cannonBallYTemp+" "+shootHeightInterval);
 				cannonBallX = cannonBallXTemp;
@@ -350,12 +401,11 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 			} else { //  if symmetrical shoot ended, the ball must continue to fall down platform. (it loops until collapsed)
 				cannonBallXTemp = cannonBallX + shootWidthInterval;
 				cannonBallYTemp = cannonBallY + shootHeightInterval;
-				ballLineList.add(new Line2D.Double(cannonBallX,cannonBallY,cannonBallXTemp,cannonBallYTemp));
+				shootingLineList.add(new Line2D.Double(cannonBallX,cannonBallY,cannonBallXTemp,cannonBallYTemp));
 				//System.out.println("Line 2D "+cannonBallX+" "+cannonBallY+" "+cannonBallXTemp+" "+cannonBallYTemp+" "+shootHeightInterval);
 				cannonBallX = cannonBallXTemp;
 				cannonBallY = cannonBallYTemp;	
 			} 
-			
 		}
 		
 	}
@@ -411,7 +461,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		
 		if(!keyPressed) {
 		p1 = e.getPoint();
-		System.out.println("Angle "+cannonAngle+" cannonBallX= "+cannonBallX+" cannonBallY= "+cannonBallY+" r= "+r);
+		//System.out.println("Angle "+cannonAngle+" cannonBallX= "+cannonBallX+" cannonBallY= "+cannonBallY);
 		cannonAngle = (Math.atan2(p1.y-y0,p1.x-x0) - Math.atan2(p.y-y0,p1.x-x0))/3;
 		}
 		
@@ -451,13 +501,20 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	}
 	
 	public void restartGame() {
+		
 		cannonX = cannonWidth;
 		cannonY = platformY-cannonHeight;
-		score = 0;
-		lives = 5;
+		cannonAngle = 0;
+	
+		isCannonBallVisible = false;
 		cannonBallX = 0;
 		cannonBallY = 0;
-		cannonAngle = 0;
+		
+		shootingLineList.clear();
+		
+		score = 0;
+		lives = 5;
+		
 		repaint();	 
 		System.out.println("Game is restarted!");
 	}
@@ -476,4 +533,18 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		    }
 		    return PAGE_EXISTS;
 	  }
+}
+
+class SplashPanel extends JPanel {
+
+	public SplashPanel() {
+		setPreferredSize(new Dimension(600, 600));
+		setBackground(Color.MAGENTA);
+	}
+
+	public void paintComponent(Graphics g) {
+		super.paintComponent(g);
+		Graphics2D g2 = (Graphics2D) g;
+
+	}
 }
