@@ -6,16 +6,15 @@
  * TODO: Arkaplan ekle 
  * TODO: Cannon sekil kontrolu et
  * TODO: Fazla variableleri sil
- * TODO: Splash screen ayarla
+ * TODO: Splash screen hazirla
  * TODO: Firlatma acisini ve sekil niye cannon iken platforma degemiyor ogren
- * TODO: Anti aliasing 
+ * TODO: Anti aliasing OK
  * TODO: Kalp sekli yerine top sekli olabilir veya ayrintili bir sey hmm
  * */
 
 package project;
 
 import java.awt.*;
-import java.awt.BorderLayout;
 import java.awt.color.ColorSpace;
 import java.awt.event.*;
 import java.awt.font.FontRenderContext;
@@ -46,9 +45,10 @@ import java.awt.print.*;
 // konudan emin ol!
 public class CannonGame extends JFrame implements ActionListener {
 	
-	static GamePanel gamePanel = new GamePanel(0,0,1200,400,50);
+	static GamePanel gamePanel = new GamePanel(1200,800,50);
 	static JFrame splashFrame;
 	PrinterJob pj;
+
 	
 	public static void main(String[] args) {
 
@@ -117,7 +117,7 @@ public class CannonGame extends JFrame implements ActionListener {
 		
 		URL iconPath = CannonGame.class.getResource("/resources/icon.png");
 		try {
-			frame.setIconImage(ImageIO.read(iconPath));
+			frame.setIconImage(ImageIO.read(iconPath)); // Set icon for game frame
 			} catch (IOException ex) {
 			     ex.printStackTrace();
 		}	
@@ -133,6 +133,7 @@ public class CannonGame extends JFrame implements ActionListener {
 		JMenuItem mi = new JMenuItem("Reset Game");
 		mi.addActionListener(this);
 		menu.add(mi);
+		menu.addSeparator();
 		mi = new JMenuItem("Print Game");
 		mi.addActionListener(this);
 		menu.add(mi);
@@ -142,7 +143,10 @@ public class CannonGame extends JFrame implements ActionListener {
 		menu.add(mi);
 		mb.add(menu);
 
-		menu = new JMenu("Developer Menu");
+		menu = new JMenu("Graphic Settings");
+		mi = new  JCheckBoxMenuItem ("Anti-Aliasing");
+		mi.addActionListener(this);
+		menu.add(mi);
 	    mb.add(menu);
 	    
 	    // Set up for printing
@@ -168,15 +172,24 @@ public class CannonGame extends JFrame implements ActionListener {
 		case "Exit":
 			System.exit(0);
 			break;
+		case "Anti-Aliasing":
+			if(gamePanel.AntiAliasing)
+				gamePanel.AntiAliasing = false;
+			else
+				gamePanel.AntiAliasing = true;
+			break;
 		}
-	}
+
+    }  
+	
 
 }
 
 class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener, MouseMotionListener, Printable { 
+	// == Graphic Render == 
+	boolean AntiAliasing;
+	
 	// === Area of the plot ===
-	int x0;
-	int y0;
 	double width;
 	double height;
 	double platformX = 0;
@@ -199,6 +212,8 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	boolean keyPressed = false;
 	
 	// == To Calculate Angle of Cannon == 
+	int x0;
+	int y0;
 	Point p1;
 	Point p = null;
 	
@@ -208,7 +223,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	List<Line2D> shootingLineList = new ArrayList<>(); // Drawing Lines of shootingLine
 	double shootHeight = 200; // TODO: Must be setting by slider or sth like that
 	double shootHeightInterval;
-	double shootWidth;
+	double shootWidth; // it is calculated with shootHeight and angle of cannon (cotangent)
 	double shootWidthInterval;
 
 	// == Cannon Ball ==
@@ -221,6 +236,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	double cannonBallWidth = 20;
 	double cannonBallHeight = 20;
 	
+	
 	// == Platform == 
 	BufferedImage brickImage = null;
 	
@@ -232,11 +248,9 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	int heartHeight = 50;
 
 
-	public GamePanel(int x, int y, int width, int height, int platformHeight) {
+	public GamePanel(int width, int height, int platformHeight) {
 		setPreferredSize(new Dimension(width, height)); 
 		setBackground(Color.LIGHT_GRAY);	
-		this.x0 = x;
-		this.y0 = y;
 		this.width = width;
 		this.height = height;
 		this.platformHeight = platformHeight;
@@ -271,38 +285,40 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	public void paintComponent(Graphics g) { 
 		super.paintComponent(g); 
 		Graphics2D g2 = (Graphics2D) g; // to usage Shape (Rectangle2D etc) classes
+		
+		if(AntiAliasing) {
+			g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON); // Enable Anti Aliasing
+		}
 		gameDraw(g2);
 		
 	}
 
-	private void gameDraw(Graphics2D g2) {		
-		FontRenderContext frc;
-		Font scoreLabelFont = new Font("Serif",Font.BOLD,24);	
+	private void gameDraw(Graphics2D g2) {			
 		
+		// Draw Player
 		player = new Cannon(cannonX,cannonY,cannonWidth,cannonHeight); // To draw, Create as Base Class (Shape not Cannon)
-		//player = new Rectangle2D.Double(cannonX,cannonY,cannonWidth,cannonHeight);
-		
+	
 		if(!keyPressed ) { //  fixes that movement rotate glitch
 			at.setToRotation(cannonAngle);	// rotate cannon angle	
 			player = at.createTransformedShape(player);
 		}
 		
-		g2.draw(player.getBounds());
 		g2.fill(player);
-		
 		
 		// Draw Cannon Ball and Line
 		if(isCannonBallVisible) {
 			cannonBall = new Ellipse2D.Double(cannonBallX - cannonBallWidth/2, cannonBallY - cannonBallHeight/2, cannonBallWidth, cannonBallHeight);
+			GradientPaint ballPaint = new GradientPaint(100,300, Color.BLACK, (int) width /2 , (int) height /2 , Color.RED);
+			g2.setPaint(ballPaint);
 			g2.fill(cannonBall);
-			//g2.draw(ball.getBounds());
 		}
-		
 		for(int i = 0 ; i< shootingLineList.size() ;i++) {
 		    g2.draw(shootingLineList.get(i));
 		}
 		
 		// Drawing Score Label (Responsively for number digit changes with frc)
+		FontRenderContext frc;
+		Font scoreLabelFont = new Font("Serif",Font.BOLD,24);	
 		String scoreLabel = "Score: " + String.valueOf(score);
 		g2.setFont(scoreLabelFont);
 		frc = g2.getFontRenderContext();
@@ -330,8 +346,6 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		
 	    platform = new Rectangle2D.Double(platformX, platformY, width, platformHeight);
 	    g2.fill(platform);
-	    
-
 	    
 	}
 	
@@ -375,7 +389,8 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 				cannonBallY = cannonY + cannonHeight/2;
 				
 				// Important!
-				// Yukseklige gore kotanjant alinarak r bulunur. Yani rotate acisi  ve h ile r bulunur
+				// English : r is found by taking the cotangent according to the height. So rotate angle and h and r are found.
+				// Turkish: Yukseklige gore kotanjant alinarak r bulunur. Yani rotate acisi  ve h ile r bulunur
 				shootWidth = shootHeight * Math.atan2(1, -(cannonAngle*-90)) ; // cot(cannonAngle)=tan(1/-cannonAngle), defterde cizdin
 				
 				// shootHeight= // TODO: Setting power
@@ -417,6 +432,8 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	private void checkCollision() {
 		if(isCannonBallShooted) {
 			Point2D p = new Point2D.Double(cannonBallX,cannonBallY);
+			
+			// CannonBall and Platform collision
 			if(platform.contains(p)) {
 				cannonBallY = platformY - cannonBallHeight /2;
 				isCannonBallShooted = false; // stop if the collision happens
@@ -424,8 +441,10 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 				lives--;
 				System.out.println("Collision");
 			}
+			//TODO: Enemy collision
 		}
 	
+		
 	}
 
 	@Override
@@ -462,11 +481,11 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 
 	@Override
 	public void mouseDragged(MouseEvent e) {
-		
-		if(!keyPressed) {
+		// The cannon angle is changed by MouseDrag event
+		if(!keyPressed) { // check for cannon movement activity
 		p1 = e.getPoint();
 		//System.out.println("Angle "+cannonAngle+" cannonBallX= "+cannonBallX+" cannonBallY= "+cannonBallY);
-		cannonAngle = (Math.atan2(p1.y-y0,p1.x-x0) - Math.atan2(p.y-y0,p1.x-x0))/3;
+		cannonAngle = (Math.atan2(p1.y-y0,p1.x-x0) - Math.atan2(p.y-y0,p1.x-x0))/3; // TODO : Check that!
 		}
 		
 	}
@@ -520,7 +539,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		lives = 5;
 		
 		repaint();	 
-		System.out.println("Game is restarted!");
+		//System.out.println("Game is restarted!");
 	}
 	
 	  public int print(Graphics g, PageFormat pf, int pageIndex) {
