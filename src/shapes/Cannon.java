@@ -10,8 +10,8 @@ public class Cannon implements Shape {
 	public Cannon(double x, double y, double w, double h) { 
 		float r = (float) (w/6); // r calculated by w/6 ratio
 		
-		Shape s1 = new Rectangle2D.Double(x+r, y, 5*r, 2*h/3);
-		Shape s2 = new Ellipse2D.Double(x, y+(h-2*r), 2*r, 2*r);
+		Shape s1 = new Rectangle2D.Double(x+r, y, 5*r, 2*h/3); // Barrel of cannon
+		Shape s2 = new Ellipse2D.Double(x, y+(h-2*r), 2*r, 2*r); // Wheel of cannon
 	    
 		area = new Area(s1);
 	    Area areaS2 = new Area(s2);

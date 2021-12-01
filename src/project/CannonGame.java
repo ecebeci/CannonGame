@@ -45,11 +45,10 @@ import java.awt.print.*;
 // konudan emin ol!
 public class CannonGame extends JFrame implements ActionListener {
 	
-	static GamePanel gamePanel = new GamePanel(1200,800,50);
+	static GamePanel gamePanel = new GamePanel(1200,400,50);
 	static JFrame splashFrame;
 	PrinterJob pj;
 
-	
 	public static void main(String[] args) {
 
 		splashFrame = new JFrame();
