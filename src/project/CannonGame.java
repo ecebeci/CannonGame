@@ -4,12 +4,10 @@
  * TODO: Dusman ( hatta dusmanlar) custom shape ekle iyi puan olur, shape icinde clipping stroke vs
  * TODO: Dusmana vurunca ayri olunca ayri image process li animasyon
  * TODO: Arkaplan ekle 
- * TODO: Cannon sekil kontrolu et
- * TODO: Fazla variableleri sil
- * TODO: Splash screen hazirla
+ * TODO: Splash screen hazirla  * TODO:  Splash Screen de diffucult olsun
  * TODO: Firlatma acisini ve sekil niye cannon iken platforma degemiyor ogren
- * TODO: Anti aliasing OK
  * TODO: Kalp sekli yerine top sekli olabilir veya ayrintili bir sey hmm
+ * TODO: Timer ekle ki sure ile yarisip dusmani oldursun
  * */
 
 package project;
@@ -143,7 +141,7 @@ public class CannonGame extends JFrame implements ActionListener {
 		mb.add(menu);
 
 		menu = new JMenu("Graphic Settings");
-		mi = new  JCheckBoxMenuItem ("Anti-Aliasing");
+		mi = new  JCheckBoxMenuItem ("Anti-Aliasing", true); // selected
 		mi.addActionListener(this);
 		menu.add(mi);
 	    mb.add(menu);
@@ -186,7 +184,7 @@ public class CannonGame extends JFrame implements ActionListener {
 
 class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener, MouseMotionListener, Printable { 
 	// == Graphic Render == 
-	boolean AntiAliasing;
+	boolean AntiAliasing = true;
 	
 	// === Area of the plot ===
 	double width;
@@ -195,11 +193,13 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	double platformY; 
 	// double platformWidth;
 	double platformHeight;
+	BufferedImage backgroundImage = null;
 
 	// === Shapes === 
 	Shape player = null;
 	Shape cannonBall = null;
 	Shape platform = null;
+	Shape enemy = null;
 	
 	// == Cannon == 
 	double cannonX;
@@ -207,7 +207,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	double cannonWidth = 70;
 	double cannonHeight = 50;
 	double cannonAngle = 0;
-	AffineTransform at = new AffineTransform();
+	AffineTransform atCannon = new AffineTransform();
 	boolean keyPressed = false;
 	
 	// == To Calculate Angle of Cannon == 
@@ -216,8 +216,20 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	Point p1;
 	Point p = null;
 	
+	// == Enemy ==
+	double enemyX;
+	double enemyY;
+	double enemyWidth = 50;
+	double enemyHeight = 50;
+	
+	double minEnemyX;
+	double maxEnemyX;
+
+	double enemyWidthGame;
+	double enemyHeightGame;
+
 	// == Shooting ==
-	int sample = 500; // draw sample 
+	int sample = 25; // draw sample 
 	int i = 0;
 	List<Line2D> shootingLineList = new ArrayList<>(); // Drawing Lines of shootingLine
 	double shootHeight = 200; // TODO: Must be setting by slider or sth like that
@@ -235,9 +247,12 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	double cannonBallWidth = 20;
 	double cannonBallHeight = 20;
 	
-	
 	// == Platform == 
 	BufferedImage brickImage = null;
+	
+	// == Game Options ==
+	double gameDiffucultyFactor = 0.25;
+	double enemyScaleFactor = 1; // (0,1] (for Enemy Size)
 	
 	// == Live and Score ==
 	int score = 0;
@@ -245,6 +260,8 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	List<Shape> liveShape = new ArrayList<>();
 	int heartWidth = 50;
 	int heartHeight = 50;
+
+
 
 
 	public GamePanel(int width, int height, int platformHeight) {
@@ -257,6 +274,13 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		
 		cannonX = cannonWidth;
 		cannonY = platformY-cannonHeight;
+		
+		URL urlBackground = getClass().getClassLoader().getResource("resources/postapocalypse1.png");
+		try {
+		   backgroundImage = ImageIO.read(urlBackground);
+		} catch (IOException ex) {
+		     ex.printStackTrace();
+		}	
 		
 		URL urlBrick = getClass().getClassLoader().getResource("resources/brick.png");
 		try {
@@ -271,6 +295,15 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 			liveShape.add(new Heart((i)*50,0,heartWidth,heartHeight)); // i+1 de olabilir
 		}
 		
+		enemyWidthGame = enemyWidth; 
+		enemyHeightGame = enemyHeight;
+
+		// Spawn first enemy randomly in a position range
+		enemyY= platformY-enemyHeight;
+		minEnemyX = width / 2;
+		maxEnemyX = width - enemyWidth;
+		spawnEnemy();
+		
 		addMouseListener(this);
 		addMouseMotionListener(this);
 		
@@ -281,6 +314,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		thread.start();
 	}
 
+
 	public void paintComponent(Graphics g) { 
 		super.paintComponent(g); 
 		Graphics2D g2 = (Graphics2D) g; // to usage Shape (Rectangle2D etc) classes
@@ -288,21 +322,23 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		if(AntiAliasing) {
 			g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON); // Enable Anti Aliasing
 		}
+		
 		gameDraw(g2);
 		
 	}
 
-	private void gameDraw(Graphics2D g2) {			
+	private void gameDraw(Graphics2D g2) {	
+	 	// Draw Background
+		TexturePaint tp = new TexturePaint(backgroundImage, new Rectangle2D.Double(0, 0, width, height));
+		//g2.setPaint(tp);
+		//platform = new Rectangle2D.Double(0, 0, width, height);
+		//g2.fill(platform); 
 		
-		// Draw Player
-		player = new Cannon(cannonX,cannonY,cannonWidth,cannonHeight); // To draw, Create as Base Class (Shape not Cannon)
-	
-		if(!keyPressed ) { //  fixes that movement rotate glitch
-			at.setToRotation(cannonAngle);	// rotate cannon angle	
-			player = at.createTransformedShape(player);
-		}
-		
-		g2.fill(player);
+		// Draw Platform with Painting Brick Texture
+		tp = new TexturePaint(brickImage, new Rectangle2D.Double(0, platformY, 25, 25));
+		g2.setPaint(tp);
+	    platform = new Rectangle2D.Double(platformX, platformY, width, platformHeight);
+	    g2.fill(platform);
 		
 		// Draw Cannon Ball and Line
 		if(isCannonBallVisible) {
@@ -311,7 +347,14 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 			g2.setPaint(ballPaint);
 			g2.fill(cannonBall);
 		}
-		for(int i = 0 ; i< shootingLineList.size() ;i++) {
+		
+		float[] dashArray = {10};
+		int dashPhase = 0;
+		BasicStroke stroke = new BasicStroke(3, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 0,
+		  dashArray, dashPhase);
+		  g2.setStroke(stroke);
+		for(int i = 0 ; i< shootingLineList.size() - 1 ;i++) { // -1 for delete last line
+			
 		    g2.draw(shootingLineList.get(i));
 		}
 		
@@ -335,16 +378,30 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		
 		// TODO: Can inince oyunu durdurup ekran cikar
         if(lives < 1) {
-        	score = 0;
+        	//score = 0;
             lives = 5;
+            spawnEnemy();
         }
-		
-		// Paint Platform with Brick Texture
-		TexturePaint tp = new TexturePaint(brickImage, new Rectangle2D.Double(0, platformY, 25, 25));
-		g2.setPaint(tp);
-		
-	    platform = new Rectangle2D.Double(platformX, platformY, width, platformHeight);
-	    g2.fill(platform);
+        
+        // Draw Enemy
+        g2.setColor(Color.BLACK);
+        
+        enemy = new Rectangle2D.Double(enemyX,enemyY,enemyWidthGame,enemyHeightGame);
+        
+        g2.fill(enemy);
+        
+		// Draw Player
+	    g2.setColor(Color.BLACK);
+		player = new Cannon(cannonX,cannonY,cannonWidth,cannonHeight); // To draw, Create as Base Class (Shape not Cannon)
+		if(!keyPressed ) { //  fixes that movement rotate glitch
+			//double cannonCenterX = player.getBounds().getCenterX();
+        	//double cannonCenterY = player.getBounds().getCenterY();
+        	//System.out.println(cannonCenterX+" "+cannonCenterY);
+			
+        	atCannon.setToRotation(cannonAngle);
+			player = atCannon.createTransformedShape(player);
+		}
+		g2.fill(player);
 	    
 	}
 	
@@ -358,7 +415,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 			repaint();
 			
 			try {
-				Thread.sleep(1); // speed
+				Thread.sleep(20); // speed
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -374,6 +431,8 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		if(cannonX + cannonWidth > width) {
 			cannonX = width - cannonWidth; // sinira geri goturur
 		}
+		
+
 	}
 
 	// Shooting Animation
@@ -395,8 +454,8 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 				// shootHeight= // TODO: Setting power
 				shootWidthInterval = shootWidth / sample ;
 				shootHeightInterval = shootHeight / sample;
-				System.out.println("Shoot Activated "+" shootWidth "+ shootWidth+" shootWidthInterval "+shootWidthInterval);
-				System.out.println("shootHeight "+ shootHeight+" shootWidthInterval "+shootHeightInterval);
+				//System.out.println("Shoot Activated "+" shootWidth "+ shootWidth+" shootWidthInterval "+shootWidthInterval);
+				//System.out.println("shootHeight "+ shootHeight+" shootWidthInterval "+shootHeightInterval);
 				i++;
 			}
 			if(i < sample) { // kinetic shoot with symmetrical rising and falling
@@ -425,12 +484,19 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 				cannonBallY = cannonBallYTemp;	
 			} 
 		}
-		
 	}
 
 	private void checkCollision() {
 		if(isCannonBallShooted) {
 			Point2D p = new Point2D.Double(cannonBallX,cannonBallY);
+			
+			//Enemy and ball collision
+			if(enemy.contains(p)) {
+				score++;
+				spawnEnemy();
+				System.out.println("Hit");
+				return;
+			}
 			
 			// CannonBall and Platform collision
 			if(platform.contains(p)) {
@@ -438,12 +504,42 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 				isCannonBallShooted = false; // stop if the collision happens
 				i = 0;
 				lives--;
-				System.out.println("Collision");
+				//System.out.println("Collision");
+				return;
 			}
-			//TODO: Enemy collision
+			
+			// If ball goes outside of area 
+			if(cannonBallX + cannonBallWidth > width) {
+				
+				isCannonBallShooted = false; // stop if the collision happens
+				i = 0;
+				lives--;
+				System.out.println("Out of zone");
+				return;
+			}
+			
 		}
+	}
 	
+	private void spawnEnemy() {
+		enemyX = minEnemyX + (Math.random() * (maxEnemyX - minEnemyX)); // Math.random takes a number [0,1) range.
+		// min +  1 ( max - min) = max
+		// min + 0 (max - min) = min
+
+		// Update Enemy factor for drawing on as Scale
+		// if the score rises , the game goes to hard.
+		if(score>1) { // prevent 1/0 problem
+			enemyScaleFactor = 1 / (score * gameDiffucultyFactor); // results must be range of (0,1]
+	        if(enemyScaleFactor<1) { // Checking scale factor in (0,1] range, but if enemyScaleFactor=1 there is no need for translation
+	        	enemyWidthGame = enemyWidth * enemyScaleFactor;
+	        	enemyHeightGame = enemyWidth * enemyScaleFactor; // it updates
+	        }
+		}
 		
+		// Updates Enemy Y after change size of enemyHeightGame
+		enemyY= platformY-enemyHeightGame;
+		
+		System.out.println(enemyX+" "+enemyScaleFactor);
 	}
 
 	@Override
@@ -460,7 +556,18 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 			cannonAngle = 0;
 			keyPressed = true;
 			break;
+		case KeyEvent.VK_A:
+			//score++;
+			cannonX -= 5;
+			cannonAngle = 0;
+			keyPressed = true;
+			break;
 		case KeyEvent.VK_RIGHT:
+			 cannonX += 5;
+			 cannonAngle = 0;
+			 keyPressed = true;
+			break;
+		case KeyEvent.VK_D:
 			 cannonX += 5;
 			 cannonAngle = 0;
 			 keyPressed = true;
@@ -482,9 +589,9 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	public void mouseDragged(MouseEvent e) {
 		// The cannon angle is changed by MouseDrag event
 		if(!keyPressed) { // check for cannon movement activity
-		p1 = e.getPoint();
-		//System.out.println("Angle "+cannonAngle+" cannonBallX= "+cannonBallX+" cannonBallY= "+cannonBallY);
-		cannonAngle = (Math.atan2(p1.y-y0,p1.x-x0) - Math.atan2(p.y-y0,p1.x-x0))/3; // TODO : Check that!
+			p1 = e.getPoint();
+			//System.out.println("Angle "+cannonAngle+" cannonBallX= "+cannonBallX+" cannonBallY= "+cannonBallY);
+			cannonAngle = (Math.atan2(p1.y-y0,p1.x-x0) - Math.atan2(p.y-y0,p1.x-x0))/3; // TODO : Check that!
 		}
 		
 	}
