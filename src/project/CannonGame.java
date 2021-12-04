@@ -245,6 +245,9 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	double enemyWidthGame;
 	double enemyHeightGame;
 	
+	double enemyLives = 3;
+	double enemyLivesGame;
+	
 	BufferedImage enemyTexture = null;
 	BufferedImage enemyTextureGame = null;
 	
@@ -330,9 +333,6 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		enemyHeightGame = enemyHeight;
 
 		// Spawn first enemy randomly in a position range
-		enemyY= platformY-enemyHeight;
-		minEnemyX = width / 2;
-		maxEnemyX = width - enemyWidth;
 		spawnEnemy();
 		
 		addMouseListener(this);
@@ -455,6 +455,8 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	// Shooted enemy animation
 	private void checkShootedEnemyAnimation() {
 		if(isEnemyShooted) {
+			firingLineList.clear(); // clear firing Line List
+			
 			if(shootedIteration < 5) {
 				// Image in ile same size ve same color type
 				BufferedImage imageOut = new BufferedImage(enemyTextureGame.getWidth(),enemyTextureGame.getHeight(),enemyTextureGame.getType());
@@ -476,15 +478,30 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 					}
 					enemyTextureGame = imageOut;
 				}
-			
+					
 				shootedIteration++;
-			} else {
-					isEnemyShooted = false;
-					shootedIteration = 0;
-					enemyTextureGame = enemyTexture; // revert texture to normal
-		
-			//spawnEnemy();
+			} else { // if enemy shooted animation iteration ends
+				isCannonBallVisible = false;
+				firingIteration = 0;
+				
+				isEnemyShooted = false;
+				shootedIteration = 0;
+				
+				enemyTextureGame = enemyTexture; // revert texture to normal
 			}
+			
+			if(enemyLivesGame < 0) {  // if enemy lives is 0
+				isCannonBallVisible = false;
+				firingIteration = 0;
+				
+				isEnemyShooted = false;
+				shootedIteration = 0;
+				
+				enemyTextureGame = enemyTexture; 
+				score += 5;
+				
+				spawnEnemy();
+			}	
 			
 		}
 			
@@ -505,7 +522,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	// Shooting animation
 	private void checkBallFiring() {	
 		if(isCannonBallFired) { 
-			if(firingIteration == 0) {
+			if(firingIteration == 0) { // first firing iteration
 				firingLineList.clear();
 				isCannonBallVisible = true;
 				
@@ -548,7 +565,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 				firingLineList.add(new Line2D.Double(cannonBallX,cannonBallY,cannonBallXTemp,cannonBallYTemp));
 				//System.out.println("Line 2D "+cannonBallX+" "+cannonBallY+" "+cannonBallXTemp+" "+cannonBallYTemp+" "+fireHeightInterval);
 				cannonBallX = cannonBallXTemp;
-				cannonBallY = cannonBallYTemp;	
+				cannonBallY = cannonBallYTemp;
 			} 
 		}
 	}
@@ -559,11 +576,11 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 			
 			//Enemy and ball collision
 			if(enemy.contains(p)) {
-				score++;
+				
 				isCannonBallFired = false;
 				firingIteration = 0;
 				isEnemyShooted = true;
-				
+				enemyLivesGame--;
 				System.out.println("Hit");
 				return;
 			}
@@ -592,6 +609,10 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	}
 	
 	private void spawnEnemy() {
+		enemyY= platformY-enemyHeight;
+		minEnemyX = width / 2;
+		maxEnemyX = width - enemyWidth;
+		
 		enemyX = minEnemyX + (Math.random() * (maxEnemyX - minEnemyX)); // Math.random takes a number [0,1) range.
 		// min +  1 ( max - min) = max
 		// min + 0 (max - min) = min
@@ -609,6 +630,10 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		// Updates Enemy Y after change size of enemyHeightGame
 		enemyY= platformY-enemyHeightGame;
 		
+		// Next enemy Lives
+		// TODO: Score a gore zorluk artsin?
+		enemyLivesGame = enemyLives;
+				
 		// Resetting Enemy Texture
 		enemyTextureGame = enemyTexture;
 		
