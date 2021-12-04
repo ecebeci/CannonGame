@@ -7,7 +7,8 @@
  * TODO: Splash screen hazirla  * TODO:  Splash Screen de diffucult olsun
  * TODO: Firlatma acisini ve sekil niye cannon iken platforma degemiyor ogren
  * TODO: Kalp sekli yerine top sekli olabilir veya ayrintili bir sey hmm
- * TODO: Timer ekle ki sure ile yarisip dusmani oldursun
+ * TODO: Timer ekle ki sure ile yarisip dusmani oldursun -- bence gerek yok
+ * TODO: Score kisminda texture hatasini duzelt
  * */
 
 package project;
@@ -140,6 +141,23 @@ public class CannonGame extends JFrame implements ActionListener {
 		menu.add(mi);
 		mb.add(menu);
 
+		menu = new JMenu("Game Settings");
+		mi = new JMenuItem("Select Diffuculty");
+		mi.setEnabled(false);
+		mi.addActionListener(this);
+		menu.add(mi);
+		menu.addSeparator();
+		mi = new JMenuItem("Easy");
+		mi.addActionListener(this);
+		menu.add(mi);
+		mi = new JMenuItem("Medium");
+		mi.addActionListener(this);
+		menu.add(mi);
+		mi = new JMenuItem("Hard");
+		mi.addActionListener(this);
+		menu.add(mi);
+		mb.add(menu);
+		
 		menu = new JMenu("Graphic Settings");
 		mi = new  JCheckBoxMenuItem ("Anti-Aliasing", true); // selected
 		mi.addActionListener(this);
@@ -219,26 +237,33 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	// == Enemy ==
 	double enemyX;
 	double enemyY;
-	double enemyWidth = 50;
-	double enemyHeight = 50;
-	
+	double enemyWidth = 200;
+	double enemyHeight = 200;
 	double minEnemyX;
 	double maxEnemyX;
-
+	
 	double enemyWidthGame;
 	double enemyHeightGame;
-
-	// == Shooting ==
+	
+	BufferedImage enemyTexture = null;
+	BufferedImage enemyTextureGame = null;
+	
+	
+	// == Enemy Animation ==
+	boolean isEnemyShooted;
+	int shootedIteration = 0;
+	
+	// == Firing ==
 	int sample = 25; // draw sample 
-	int i = 0;
-	List<Line2D> shootingLineList = new ArrayList<>(); // Drawing Lines of shootingLine
-	double shootHeight = 200; // TODO: Must be setting by slider or sth like that
-	double shootHeightInterval;
-	double shootWidth; // it is calculated with shootHeight and angle of cannon (cotangent)
-	double shootWidthInterval;
+	int firingIteration = 0;
+	List<Line2D> firingLineList = new ArrayList<>(); // Drawing Lines of firingLine
+	double fireHeight = 200; // TODO: Must be setting by slider or sth like that
+	double fireHeightInterval;
+	double fireWidth; // it is calculated with firingHeight and angle of cannon (cotangent)
+	double fireWidthInterval;
 
 	// == Cannon Ball ==
-	boolean isCannonBallShooted;
+	boolean isCannonBallFired;
 	boolean isCannonBallVisible = false;
 	double cannonBallX = 0;
 	double cannonBallY = 0;
@@ -260,8 +285,6 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	List<Shape> liveShape = new ArrayList<>();
 	int heartWidth = 50;
 	int heartHeight = 50;
-
-
 
 
 	public GamePanel(int width, int height, int platformHeight) {
@@ -287,7 +310,15 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		   brickImage = ImageIO.read(urlBrick);
 		} catch (IOException ex) {
 		     ex.printStackTrace();
-		}		
+		}	
+		
+		URL urlEnemyTexture = getClass().getClassLoader().getResource("resources/texture.jpg");
+		try {
+		   enemyTexture = ImageIO.read(urlEnemyTexture);
+		} catch (IOException ex) {
+		     ex.printStackTrace();
+		}	
+		enemyTextureGame = enemyTexture;
 		
 		// Create lives location
 		for(int i=0; i<lives; i++) {
@@ -324,7 +355,6 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		}
 		
 		gameDraw(g2);
-		
 	}
 
 	private void gameDraw(Graphics2D g2) {	
@@ -340,7 +370,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	    platform = new Rectangle2D.Double(platformX, platformY, width, platformHeight);
 	    g2.fill(platform);
 		
-		// Draw Cannon Ball and Line
+		// Draw Cannon Ball and Tracking Fire Lines
 		if(isCannonBallVisible) {
 			cannonBall = new Ellipse2D.Double(cannonBallX - cannonBallWidth/2, cannonBallY - cannonBallHeight/2, cannonBallWidth, cannonBallHeight);
 			GradientPaint ballPaint = new GradientPaint(100,300, Color.BLACK, (int) width /2 , (int) height /2 , Color.RED);
@@ -353,9 +383,8 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		BasicStroke stroke = new BasicStroke(3, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 0,
 		  dashArray, dashPhase);
 		  g2.setStroke(stroke);
-		for(int i = 0 ; i< shootingLineList.size() - 1 ;i++) { // -1 for delete last line
-			
-		    g2.draw(shootingLineList.get(i));
+		for(int i = 0 ; i< firingLineList.size() - 1 ;i++) { // -1 for delete last line
+		    g2.draw(firingLineList.get(i));
 		}
 		
 		// Drawing Score Label (Responsively for number digit changes with frc)
@@ -384,7 +413,9 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
         }
         
         // Draw Enemy
-        g2.setColor(Color.BLACK);
+        //g2.setColor(Color.BLACK);
+        tp = new TexturePaint(enemyTextureGame, new Rectangle2D.Double(enemyX, enemyY, enemyWidthGame, enemyHeightGame));
+        g2.setPaint(tp);
         
         enemy = new Rectangle2D.Double(enemyX,enemyY,enemyWidthGame,enemyHeightGame);
         
@@ -393,11 +424,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		// Draw Player
 	    g2.setColor(Color.BLACK);
 		player = new Cannon(cannonX,cannonY,cannonWidth,cannonHeight); // To draw, Create as Base Class (Shape not Cannon)
-		if(!keyPressed ) { //  fixes that movement rotate glitch
-			//double cannonCenterX = player.getBounds().getCenterX();
-        	//double cannonCenterY = player.getBounds().getCenterY();
-        	//System.out.println(cannonCenterX+" "+cannonCenterY);
-			
+		if(!keyPressed ) { //  fixes that movement rotate glitch	
         	atCannon.setToRotation(cannonAngle);
 			player = atCannon.createTransformedShape(player);
 		}
@@ -409,9 +436,11 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	@Override
 	public void run() {
 		while(true) {
-			checkBallShooting();
+			checkBallFiring();		
 			checkCollision();
 			checkPanelLimits();
+			checkShootedEnemyAnimation(); // for shooted enemy animation with image processing
+			
 			repaint();
 			
 			try {
@@ -421,6 +450,44 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 			}
 			
 		}
+	}
+	
+	// Shooted enemy animation
+	private void checkShootedEnemyAnimation() {
+		if(isEnemyShooted) {
+			if(shootedIteration < 5) {
+				// Image in ile same size ve same color type
+				BufferedImage imageOut = new BufferedImage(enemyTextureGame.getWidth(),enemyTextureGame.getHeight(),enemyTextureGame.getType());
+				// recommended fastest one, raster image matrix'i alip mudahale ederek hizli write ozelligi saglar, bufferedimage ile mudahale yavastir!
+				WritableRaster rasterImgIn = enemyTextureGame.getRaster();
+				WritableRaster rasterImgOut = imageOut.getRaster();
+			
+				int[] rgba = new int[4]; // a alpha channel dir, transparency'i gosterir, bu ornekte sadece rgb mudahalesi olacak. alpha channel kalacak
+			
+				for(int y=0; y<enemyTextureGame.getHeight(); y++) { // piksel satir satir 
+					for(int x=0; x<enemyTextureGame.getWidth(); x++) {
+					
+						// piksele gore cikis, raster hizlilik saglar buffered image ile tek tek deseydik yavas olurdu
+						rasterImgIn.getPixel(x, y, rgba); // rgba ya yazilir
+						// pixel = r+g+b/3
+						int gray = (int) (rgba[0] + rgba[1] + rgba[2] / 5f);
+						rgba [0] = rgba[1]= rgba[2] = gray;
+						rasterImgOut.setPixel(x, y, rgba);
+					}
+					enemyTextureGame = imageOut;
+				}
+			
+				shootedIteration++;
+			} else {
+					isEnemyShooted = false;
+					shootedIteration = 0;
+					enemyTextureGame = enemyTexture; // revert texture to normal
+		
+			//spawnEnemy();
+			}
+			
+		}
+			
 	}
 	
 	//checkPanelLimits for player
@@ -435,11 +502,11 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 
 	}
 
-	// Shooting Animation
-	private void checkBallShooting() {	
-		if(isCannonBallShooted) { 
-			if(i == 0) {
-				shootingLineList.clear();
+	// Shooting animation
+	private void checkBallFiring() {	
+		if(isCannonBallFired) { 
+			if(firingIteration == 0) {
+				firingLineList.clear();
 				isCannonBallVisible = true;
 				
 				//For first iterator
@@ -449,37 +516,37 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 				// Important!
 				// English : r is found by taking the cotangent according to the height. So rotate angle and h and r are found.
 				// Turkish: Yukseklige gore kotanjant alinarak r bulunur. Yani rotate acisi  ve h ile r bulunur
-				shootWidth = shootHeight * Math.atan2(1, -(cannonAngle*-90)) ; // cot(cannonAngle)=tan(1/-cannonAngle), defterde cizdin
+				fireWidth = fireHeight * Math.atan2(1, -(cannonAngle*-90)) ; // cot(cannonAngle)=tan(1/-cannonAngle), defterde cizdin
 				
-				// shootHeight= // TODO: Setting power
-				shootWidthInterval = shootWidth / sample ;
-				shootHeightInterval = shootHeight / sample;
-				//System.out.println("Shoot Activated "+" shootWidth "+ shootWidth+" shootWidthInterval "+shootWidthInterval);
-				//System.out.println("shootHeight "+ shootHeight+" shootWidthInterval "+shootHeightInterval);
-				i++;
+				// fireHeight= // TODO: Setting power
+				fireWidthInterval = fireWidth / sample ;
+				fireHeightInterval = fireHeight / sample;
+				//System.out.println("Fire Activated "+" fireWidth "+ fireWidth+" fireWidthInterval "+fireWidthInterval);
+				//System.out.println("fireHeight "+ fireHeight+" fireWidthInterval "+fireHeightInterval);
+				firingIteration++;
 			}
-			if(i < sample) { // kinetic shoot with symmetrical rising and falling
+			if(firingIteration < sample) { // kinetic shoot with symmetrical rising and falling
 				
-				cannonBallXTemp = cannonBallX + shootWidthInterval;
+				cannonBallXTemp = cannonBallX + fireWidthInterval;
 				
-				if(i<sample/2) { // Rising
-					cannonBallYTemp = cannonBallY - shootHeightInterval;
+				if(firingIteration<sample/2) { // Rising
+					cannonBallYTemp = cannonBallY - fireHeightInterval;
 				} else { // Falling 
-					cannonBallYTemp = cannonBallY + shootHeightInterval;
+					cannonBallYTemp = cannonBallY + fireHeightInterval;
 				}
 				
-				shootingLineList.add(new Line2D.Double(cannonBallX,cannonBallY,cannonBallXTemp,cannonBallYTemp));
+				firingLineList.add(new Line2D.Double(cannonBallX,cannonBallY,cannonBallXTemp,cannonBallYTemp));
 				
-				//System.out.println("Line 2D "+cannonBallX+" "+cannonBallY+" "+cannonBallXTemp+" "+cannonBallYTemp+" "+shootHeightInterval);
+				//System.out.println("Line 2D "+cannonBallX+" "+cannonBallY+" "+cannonBallXTemp+" "+cannonBallYTemp+" "+fireHeightInterval);
 				cannonBallX = cannonBallXTemp;
 				cannonBallY = cannonBallYTemp;	
-				i++;
+				firingIteration++;
 				
 			} else { //  if symmetrical shoot ended, the ball must continue to fall down platform. (it loops until collapsed)
-				cannonBallXTemp = cannonBallX + shootWidthInterval;
-				cannonBallYTemp = cannonBallY + shootHeightInterval;
-				shootingLineList.add(new Line2D.Double(cannonBallX,cannonBallY,cannonBallXTemp,cannonBallYTemp));
-				//System.out.println("Line 2D "+cannonBallX+" "+cannonBallY+" "+cannonBallXTemp+" "+cannonBallYTemp+" "+shootHeightInterval);
+				cannonBallXTemp = cannonBallX + fireWidthInterval;
+				cannonBallYTemp = cannonBallY + fireHeightInterval;
+				firingLineList.add(new Line2D.Double(cannonBallX,cannonBallY,cannonBallXTemp,cannonBallYTemp));
+				//System.out.println("Line 2D "+cannonBallX+" "+cannonBallY+" "+cannonBallXTemp+" "+cannonBallYTemp+" "+fireHeightInterval);
 				cannonBallX = cannonBallXTemp;
 				cannonBallY = cannonBallYTemp;	
 			} 
@@ -487,13 +554,16 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	}
 
 	private void checkCollision() {
-		if(isCannonBallShooted) {
+		if(isCannonBallFired) {
 			Point2D p = new Point2D.Double(cannonBallX,cannonBallY);
 			
 			//Enemy and ball collision
 			if(enemy.contains(p)) {
 				score++;
-				spawnEnemy();
+				isCannonBallFired = false;
+				firingIteration = 0;
+				isEnemyShooted = true;
+				
 				System.out.println("Hit");
 				return;
 			}
@@ -501,8 +571,8 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 			// CannonBall and Platform collision
 			if(platform.contains(p)) {
 				cannonBallY = platformY - cannonBallHeight /2;
-				isCannonBallShooted = false; // stop if the collision happens
-				i = 0;
+				isCannonBallFired = false; // stop if the collision happens
+				firingIteration = 0;
 				lives--;
 				//System.out.println("Collision");
 				return;
@@ -511,8 +581,8 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 			// If ball goes outside of area 
 			if(cannonBallX + cannonBallWidth > width) {
 				
-				isCannonBallShooted = false; // stop if the collision happens
-				i = 0;
+				isCannonBallFired = false; // stop if the collision happens
+				firingIteration = 0;
 				lives--;
 				System.out.println("Out of zone");
 				return;
@@ -538,6 +608,9 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		
 		// Updates Enemy Y after change size of enemyHeightGame
 		enemyY= platformY-enemyHeightGame;
+		
+		// Resetting Enemy Texture
+		enemyTextureGame = enemyTexture;
 		
 		System.out.println(enemyX+" "+enemyScaleFactor);
 	}
@@ -573,8 +646,8 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 			 keyPressed = true;
 			break;
 		case 32:
-			if(!isCannonBallShooted) {
-				isCannonBallShooted = true;
+			if(!isCannonBallFired) {
+				isCannonBallFired = true;
 			}
 			
 		}
@@ -639,10 +712,12 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		cannonBallX = 0;
 		cannonBallY = 0;
 		
-		shootingLineList.clear();
+		firingLineList.clear();
 		
 		score = 0;
 		lives = 5;
+		
+		spawnEnemy();
 		
 		repaint();	 
 		//System.out.println("Game is restarted!");
