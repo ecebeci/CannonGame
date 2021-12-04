@@ -1,8 +1,7 @@
 /* Muhammet Emre Cebeci 1705950
  * 2021 - December
- * TODO: Slider ile guc cubugu ekle , container ile altta olabilir belki. printer orneginde vardi veya guc cubugu cizersin dikdortgenden asagi ve yukari onun gucunu ayarlar
+ * TODO: Space tusu ile buyume kuculme animasyonu ve ona gore guc
  * TODO: Dusman ( hatta dusmanlar) custom shape ekle iyi puan olur, shape icinde clipping stroke vs
- * TODO: Dusmana vurunca ayri olunca ayri image process li animasyon
  * TODO: Arkaplan ekle 
  * TODO: Splash screen hazirla  * TODO:  Splash Screen de diffucult olsun
  * TODO: Firlatma acisini ve sekil niye cannon iken platforma degemiyor ogren
@@ -279,7 +278,8 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	BufferedImage brickImage = null;
 	
 	// == Game Options ==
-	double gameDiffucultyFactor = 0.25;
+	double gameDiffucultyFactor = 0.75; //easy  0.25;
+	
 	double enemyScaleFactor = 1; // (0,1] (for Enemy Size)
 	
 	// == Live and Score ==
@@ -478,8 +478,9 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 					}
 					enemyTextureGame = imageOut;
 				}
-					
+						
 				shootedIteration++;
+				return;
 			} else { // if enemy shooted animation iteration ends
 				isCannonBallVisible = false;
 				firingIteration = 0;
@@ -487,10 +488,12 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 				isEnemyShooted = false;
 				shootedIteration = 0;
 				
+				enemyX = minEnemyX + (Math.random() * (maxEnemyX - minEnemyX)); // Changes x
 				enemyTextureGame = enemyTexture; // revert texture to normal
+				
 			}
 			
-			if(enemyLivesGame < 0) {  // if enemy lives is 0
+			if(enemyLivesGame < 1) {  // if enemy lives is 0
 				isCannonBallVisible = false;
 				firingIteration = 0;
 				
@@ -498,8 +501,8 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 				shootedIteration = 0;
 				
 				enemyTextureGame = enemyTexture; 
-				score += 5;
-				
+				score += 1;
+			
 				spawnEnemy();
 			}	
 			
@@ -512,10 +515,14 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		if(cannonX < 0) {  // en kosedeyken merkezden r cikarirsan sinir olur hmm! cizdim
 			cannonX = 0; // sinira geri goturur
 		}
-		if(cannonX + cannonWidth > width) {
+		/* if(cannonX + cannonWidth > width) {
 			cannonX = width - cannonWidth; // sinira geri goturur
-		}
+		} */
 		
+		// middle of width limit
+		if(cannonX + cannonWidth > width/4) {
+			cannonX  =  width/4 - cannonWidth; // 
+		}
 
 	}
 
@@ -610,7 +617,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	
 	private void spawnEnemy() {
 		enemyY= platformY-enemyHeight;
-		minEnemyX = width / 2;
+		minEnemyX = width/4; // after width/4
 		maxEnemyX = width - enemyWidth;
 		
 		enemyX = minEnemyX + (Math.random() * (maxEnemyX - minEnemyX)); // Math.random takes a number [0,1) range.
