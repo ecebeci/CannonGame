@@ -8,6 +8,9 @@
  * TODO: Kalp sekli yerine top sekli olabilir veya ayrintili bir sey hmm
  * TODO: Timer ekle ki sure ile yarisip dusmani oldursun -- bence gerek yok
  * TODO: Score kisminda texture hatasini duzelt
+ * 
+ * TODO: cannon oldugu yere arkaplanda cisimler vs olsun base gibi hmm
+ * TODO:
  * */
 
 package project;
@@ -217,12 +220,13 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	Shape cannonBall = null;
 	Shape platform = null;
 	Shape enemy = null;
+	Shape powerBar = null;
 	
 	// == Cannon == 
 	double cannonX;
 	double cannonY;
-	double cannonWidth = 70;
-	double cannonHeight = 50;
+	double cannonWidth = 70; // TODO : geometrik oranla!
+	double cannonHeight = 50; // TODO : geometrik oranla!
 	double cannonAngle = 0;
 	AffineTransform atCannon = new AffineTransform();
 	boolean keyPressed = false;
@@ -236,8 +240,8 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	// == Enemy ==
 	double enemyX;
 	double enemyY;
-	double enemyWidth = 200;
-	double enemyHeight = 200;
+	double enemyWidth = 200; // TODO : geometrik oranla!
+	double enemyHeight = 200; // TODO : geometrik oranla!
 	double minEnemyX;
 	double maxEnemyX;
 	
@@ -255,14 +259,29 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	boolean isEnemyShooted;
 	int shootedIteration = 0;
 	
+	// == Power Bar ==
+	boolean isSpacePressed = false;
+	boolean isPowerBarRises = true;
+	double powerBarX = 0;
+	double powerBarY = 0;
+	double powerBarWidth; // default max width
+	double powerBarHeight; // default max width
+	//double powerBarXGame;
+	double powerBarYGame;
+	// double powerBarWidthGame; do not need (width wont change when animation)
+	double powerBarHeightGame; // when space is pressed, The size is determined by ratio the current power
+	
+	
 	// == Firing ==
 	int sample = 25; // draw sample 
 	int firingIteration = 0;
 	List<Line2D> firingLineList = new ArrayList<>(); // Drawing Lines of firingLine
-	double fireHeight = 200; // TODO: Must be setting by slider or sth like that
+	double fireHeightMax; 
+	double fireHeight; // IMPORTANT: it is changed by power bar!
 	double fireHeightInterval;
 	double fireWidth; // it is calculated with firingHeight and angle of cannon (cotangent)
 	double fireWidthInterval;
+	
 
 	// == Cannon Ball ==
 	boolean isCannonBallFired;
@@ -280,7 +299,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	// == Game Options ==
 	double gameDiffucultyFactor = 0.75; //easy  0.25;
 	
-	double enemyScaleFactor = 1; // (0,1] (for Enemy Size)
+	double enemyScaleFactor = 1; // (0,1] (for Enemy Size Scale)
 	
 	// == Live and Score ==
 	int score = 0;
@@ -329,8 +348,19 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 			liveShape.add(new Heart((i)*50,0,heartWidth,heartHeight)); // i+1 de olabilir
 		}
 		
+		
+		// == Enemy ==
 		enemyWidthGame = enemyWidth; 
 		enemyHeightGame = enemyHeight;
+		
+		// == Firing ==
+		fireHeightMax = 3 * height / 4; // 
+		
+		// == Power Bar Construct ==
+		powerBarWidth = width / 25;
+		powerBarHeight = height - platformHeight - heartHeight;
+		powerBarX = width / 100;
+		powerBarY = heartHeight;
 
 		// Spawn first enemy randomly in a position range
 		spawnEnemy();
@@ -369,7 +399,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		g2.setPaint(tp);
 	    platform = new Rectangle2D.Double(platformX, platformY, width, platformHeight);
 	    g2.fill(platform);
-		
+	    
 		// Draw Cannon Ball and Tracking Fire Lines
 		if(isCannonBallVisible) {
 			cannonBall = new Ellipse2D.Double(cannonBallX - cannonBallWidth/2, cannonBallY - cannonBallHeight/2, cannonBallWidth, cannonBallHeight);
@@ -386,6 +416,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		for(int i = 0 ; i< firingLineList.size() - 1 ;i++) { // -1 for delete last line
 		    g2.draw(firingLineList.get(i));
 		}
+		
 		
 		// Drawing Score Label (Responsively for number digit changes with frc)
 		FontRenderContext frc;
@@ -407,10 +438,18 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		
 		// TODO: Can inince oyunu durdurup ekran cikar
         if(lives < 1) {
-        	//score = 0;
+        	score = 0;
             lives = 5;
+            enemyScaleFactor = 1;
             spawnEnemy();
         }
+        
+		// Drawing Power Bar
+	    if(isSpacePressed) {
+	    	powerBar = new Rectangle2D.Double(powerBarX,powerBarYGame,powerBarWidth,powerBarHeightGame);
+	    	g2.fill(powerBar);
+	    	System.out.println(powerBarYGame+" "+powerBarHeightGame);
+	    }  
         
         // Draw Enemy
         //g2.setColor(Color.BLACK);
@@ -436,6 +475,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	@Override
 	public void run() {
 		while(true) {
+			checkPowerBar();
 			checkBallFiring();		
 			checkCollision();
 			checkPanelLimits();
@@ -452,6 +492,31 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		}
 	}
 	
+	private void checkPowerBar() {
+		if(isSpacePressed) {
+			if(isPowerBarRises) { // bar is rising up
+				if(powerBarHeightGame<=powerBarHeight) {
+					powerBarHeightGame += 10;
+				} else {
+					isPowerBarRises = false; // if it is on max position
+					powerBarHeightGame -= 10;
+				}
+			} else { // bar is falling down
+				if(powerBarHeightGame>0) {
+					powerBarHeightGame -= 10;
+				} else {
+					isPowerBarRises = true; // if it is on min position
+					powerBarHeightGame += 10;
+				}
+			}
+			powerBarYGame = powerBarY + powerBarHeight - powerBarHeightGame;
+	
+			fireHeight =  fireHeightMax * (powerBarHeightGame / powerBarHeight); // ratio of	
+			
+		}
+	}
+
+
 	// Shooted enemy animation
 	private void checkShootedEnemyAnimation() {
 		if(isEnemyShooted) {
@@ -502,7 +567,9 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 				
 				enemyTextureGame = enemyTexture; 
 				score += 1;
-			
+				
+				lives = 5;
+				
 				spawnEnemy();
 			}	
 			
@@ -583,7 +650,6 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 			
 			//Enemy and ball collision
 			if(enemy.contains(p)) {
-				
 				isCannonBallFired = false;
 				firingIteration = 0;
 				isEnemyShooted = true;
@@ -604,7 +670,6 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 			
 			// If ball goes outside of area 
 			if(cannonBallX + cannonBallWidth > width) {
-				
 				isCannonBallFired = false; // stop if the collision happens
 				firingIteration = 0;
 				lives--;
@@ -628,12 +693,12 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		// if the score rises , the game goes to hard.
 		if(score>1) { // prevent 1/0 problem
 			enemyScaleFactor = 1 / (score * gameDiffucultyFactor); // results must be range of (0,1]
-	        if(enemyScaleFactor<1) { // Checking scale factor in (0,1] range, but if enemyScaleFactor=1 there is no need for translation
-	        	enemyWidthGame = enemyWidth * enemyScaleFactor;
-	        	enemyHeightGame = enemyWidth * enemyScaleFactor; // it updates
-	        }
 		}
 		
+	     // Checking scale factor in (0,1] range, but if enemyScaleFactor=1 there is no need for translation
+	    enemyWidthGame = enemyWidth * enemyScaleFactor;
+	    enemyHeightGame = enemyWidth * enemyScaleFactor; // it updates
+	     
 		// Updates Enemy Y after change size of enemyHeightGame
 		enemyY= platformY-enemyHeightGame;
 		
@@ -677,9 +742,12 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 			 cannonAngle = 0;
 			 keyPressed = true;
 			break;
-		case 32:
+		case KeyEvent.VK_SPACE:
 			if(!isCannonBallFired) {
-				isCannonBallFired = true;
+				if(!isSpacePressed) { // checking the power bar is active
+					isSpacePressed = true;	
+					System.out.println("Pressed space");	
+				}
 			}
 			
 		}
@@ -688,6 +756,16 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	@Override
 	public void keyReleased(KeyEvent e) {
 		keyPressed = false;
+		switch(e.getKeyCode()) {
+			case KeyEvent.VK_SPACE:
+				isSpacePressed = false; // stopping the bar animation
+				isCannonBallFired = true;
+				
+				powerBarHeightGame = 50;
+				isPowerBarRises = true;
+				break;
+		}
+		
 	}
 
 	@Override
@@ -735,16 +813,21 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	}
 	
 	public void restartGame() {
-		
 		cannonX = cannonWidth;
 		cannonY = platformY-cannonHeight;
 		cannonAngle = 0;
-	
+		
+		isCannonBallFired = false;
+		firingIteration = 0;
+		
 		isCannonBallVisible = false;
 		cannonBallX = 0;
 		cannonBallY = 0;
 		
 		firingLineList.clear();
+		
+		isSpacePressed = false; 
+		isPowerBarRises = true;
 		
 		score = 0;
 		lives = 5;
