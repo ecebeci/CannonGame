@@ -6,13 +6,22 @@ import javax.swing.*;
 
 public class Cannon implements Shape {  
 	Area area;
+	AffineTransform barrelTransform = new AffineTransform();
 	
-	public Cannon(double x, double y, double w, double h) { 
+	public Cannon(double x, double y, double w, double h, double barrelAngle, boolean rotate) { 
 		float r = (float) (w/6); // r calculated by w/6 ratio
 		
 		Shape s1 = new Rectangle2D.Double(x+r, y, 5*r, 2*h/3); // Barrel of cannon
 		Shape s2 = new Ellipse2D.Double(x, y+(h-2*r), 2*r, 2*r); // Wheel of cannon
-	    
+		
+		if(rotate) {
+			if(barrelAngle != 0.0) {
+				barrelTransform.setToRotation(barrelAngle,x-r,y);
+				s1 = barrelTransform.createTransformedShape(s1);
+			}
+		}
+		
+		
 		area = new Area(s1);
 	    Area areaS2 = new Area(s2);
 	    area.add(areaS2); // Area add

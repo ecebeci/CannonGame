@@ -204,13 +204,13 @@ public class CannonGame extends JFrame implements ActionListener {
 				gamePanel.AntiAliasing = true;
 			break;
 		case "Easy":
-			gamePanel.gameDiffucultyFactor = 0.50;
+			gamePanel.gameDiffucultyFactor = 0.25;
 			break;
 		case "Medium":
-			gamePanel.gameDiffucultyFactor = 1;
+			gamePanel.gameDiffucultyFactor = 0.50;
 			break;
 		case "Hard":
-			gamePanel.gameDiffucultyFactor = 1.5;
+			gamePanel.gameDiffucultyFactor = 0.75;
 			break;
 		}
     }  
@@ -269,7 +269,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	double enemyWidthGame;
 	double enemyHeightGame;
 	
-	double enemyLives = 3;
+	double enemyLives;
 	double enemyLivesGame;
 	
 	BufferedImage enemyTexture = null;
@@ -315,7 +315,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	BufferedImage brickImage = null;
 	
 	// == Game Options ==
-	double gameDiffucultyFactor = 0.75; //easy  0.25; medium 0.75
+	double gameDiffucultyFactor = 0.5; //easy  0.25 medium 0.5 hard 0.75
 	
 	double enemyScaleFactor = 1; // (0,1] (for Enemy Size Scale)
 	
@@ -373,8 +373,10 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		enemyWidthGame = enemyWidth; 
 		enemyHeightGame = enemyHeight;
 		
+		enemyLivesGame = enemyLives;
+		
 		// == Firing ==
-		fireHeightMax = 3 * height / 4; // 
+		fireHeightMax = 3 * height / 4; // TODO: tekrar bak
 		
 		// == Power Bar Construct ==
 		powerBarWidth = width / 25;
@@ -446,7 +448,6 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		    g2.draw(firingLineList.get(i));
 		}
 		
-		
 		// == Drawing Score Label == (Responsively for number digit changes with frc)
 		FontRenderContext frc;
 		Font scoreLabelFont = new Font("Serif",Font.BOLD,24);	
@@ -467,8 +468,8 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		
 		// TODO: Can inince oyunu durdurup ekran cikar
         if(lives < 1) {
-        	score = 0;
-            lives = 5;
+        	//score = 0;
+            //lives = 5;
             enemyScaleFactor = 1;
             isPlayerLost = true;
             //spawnEnemy();
@@ -488,16 +489,27 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
         tp = new TexturePaint(enemyTextureGame, new Rectangle2D.Double(enemyX, enemyY, enemyWidthGame, enemyHeightGame));
         g2.setPaint(tp);
         
-        enemy = new Enemy(enemyX,enemyY,enemyWidthGame); // enemyHeightGame
+        float enemyTransparency = 1f;
+        if(enemyLivesGame>0) {
+        	enemyTransparency =  (float) ((enemyLivesGame)/enemyLives);
+        	if(enemyTransparency + 0.3 < 1) {
+        		enemyTransparency += 0.3;
+        	}
+        }
+        
+        enemy = new Enemy(g2,enemyX,enemyY,enemyWidthGame, enemyLivesGame > 0 ? enemyTransparency : 1f); 
+        // enemyHeightGame is not required
+        // enemyLivesGame = 1 - 1/lives transparency levels 0 to 1
         
         g2.fill(enemy);
         
 		// == Draw Player ==
 	    g2.setColor(Color.BLACK);
-		player = new Cannon(cannonX,cannonY,cannonWidth,cannonHeight); // To draw, Create as Base Class (Shape not Cannon)
+		
 		if(!keyPressed ) { //  fixes that movement rotate glitch	
-        	atCannon.setToRotation(cannonAngle);
-			player = atCannon.createTransformedShape(player);
+			player = new Cannon(cannonX,cannonY,cannonWidth,cannonHeight, cannonAngle, true); 
+		} else {
+			player = new Cannon(cannonX,cannonY,cannonWidth,cannonHeight, cannonAngle, false); // false for rotating
 		}
 		g2.fill(player);
 	    
@@ -618,7 +630,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 				
 				//For first iterator
 				cannonBallX = cannonX + cannonWidth;
-				cannonBallY = cannonY + cannonHeight/2;
+				cannonBallY = cannonY + cannonHeight/3; // cannonHeight proportion
 				
 				// fireHeight is calculated by power bar
 				// Important!
@@ -670,7 +682,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 				firingIteration = 0;
 				isEnemyShooted = true;
 				enemyLivesGame--;
-				System.out.println("Hit");
+				//System.out.println("Hit");
 				return;
 			}
 			
@@ -689,7 +701,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 				isCannonBallFired = false; // stop if the collision happens
 				firingIteration = 0;
 				lives--;
-				System.out.println("Out of zone");
+				//System.out.println("Out of zone");
 				return;
 			}
 			
@@ -786,7 +798,9 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		enemyY= platformY-enemyHeightGame;
 		
 		// Next enemy Lives
-		// TODO: Score a gore can zorlugu artsin?
+		// TODO: Score will increased by score and diffuculty factor
+		// score *  gameDiffucultyFactor hmm
+		enemyLives = 3 + (score/2) * gameDiffucultyFactor;
 		enemyLivesGame = enemyLives;
 				
 		// Resetting Enemy Texture
@@ -802,6 +816,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 
 	@Override
 	public void keyPressed(KeyEvent e) {
+		if(!isPlayerLost) {
 		switch(e.getKeyCode()) {
 		case KeyEvent.VK_LEFT:
 			//lives--;
@@ -831,12 +846,13 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 					isSpacePressed = true;	
 				}
 			}
-			
+		}
 		}
 	}
 
 	@Override
 	public void keyReleased(KeyEvent e) {
+		if(!isPlayerLost) {
 		keyPressed = false;
 		switch(e.getKeyCode()) {
 			case KeyEvent.VK_SPACE: // Power bar is released
@@ -847,18 +863,19 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 				isPowerBarRises = true;
 				break;
 		}
-		
+		}
 	}
 
 	@Override
 	public void mouseDragged(MouseEvent e) {
+		if(!isPlayerLost) {
 		// The cannon angle is changed by MouseDrag event
 		if(!keyPressed) { // check for cannon movement activity
 			p1 = e.getPoint();
 			//System.out.println("Angle "+cannonAngle+" cannonBallX= "+cannonBallX+" cannonBallY= "+cannonBallY);
 			cannonAngle = (Math.atan2(p1.y-y0,p1.x-x0) - Math.atan2(p.y-y0,p1.x-x0))/3; // TODO : Check that!
 		}
-		
+		}
 	}
 
 	@Override

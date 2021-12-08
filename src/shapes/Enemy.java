@@ -7,21 +7,29 @@ import javax.swing.*;
 
 public class Enemy implements Shape {
 	Area area;
-	
-	
-	public Enemy(double x, double y, double height) { // d as a diameter
+
+	public Enemy(Graphics2D g2,double x, double y, double height, float transparency) { // g2 for transparancy, d as a diameter
+		//TODO: , BufferedImage texture1, BufferedImage texture2, BufferedImage texture3 ?
+		
 		double division = height/7;// to give proportional shape, diameter as shapes calculated by height
 		double diameter = division * 3; // 2 * radius
-		
+		// transparency 0f to 1f. 0 is 0%, 1 is 100%
+		//System.out.println(transparency);
+		AlphaComposite ac = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, transparency);  
+		//g2.setComposite(ac); TODO: Duzelt
 		Shape s1 = new Ellipse2D.Double(x,y,diameter,diameter); // First Circle
+		g2.fill(s1);
 		Shape s2 = new Ellipse2D.Double(x,y+ 2*division,diameter,diameter);// Second Circle
+		g2.fill(s2);
 		Shape s3 = new Ellipse2D.Double(x,y+ 2*division + 2*division,diameter,diameter);// Third Circle
+		g2.fill(s3);
 		
-		area = new Area(s1);
+		area = new Area(s3); // circlee);
 		Area areaS2 = new Area(s2);
 		area.add(areaS2); // Area add
-		areaS2 = new Area(s3);
+		areaS2 = new Area(s1);
 		area.add(areaS2); 
+		
 	}
 	
 	
