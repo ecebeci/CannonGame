@@ -19,6 +19,10 @@ public class Cannon implements Shape {
 	   
 	}
 	
+	public void rotateBarrel(double angle) {
+		//return area.contains(rect);
+	}
+	
 	public boolean contains(Rectangle2D rect) {
 		return area.contains(rect);
 	}
@@ -33,30 +37,30 @@ public class Cannon implements Shape {
 
 	public boolean contains(double x, double y, double w, double h) {
 		return area.contains(x, y, w, h);
-  }
+	}
 
 	public Rectangle getBounds() {
-    return area.getBounds();
-  }
+		return area.getBounds();
+	}
   
 	public Rectangle2D getBounds2D() {
-    return area.getBounds2D();
-  }
+		return area.getBounds2D();
+	}
 	
-  public PathIterator getPathIterator(AffineTransform at) {
-    return area.getPathIterator(at);
-  }
+	public PathIterator getPathIterator(AffineTransform at) {
+		return area.getPathIterator(at);
+	}
 
-  public PathIterator getPathIterator(AffineTransform at, double flatness) {
-    return area.getPathIterator(at, flatness);
-  }
+  	public PathIterator getPathIterator(AffineTransform at, double flatness) {
+  		return area.getPathIterator(at, flatness);
+  	}
 
-  public boolean intersects(Rectangle2D rect) {
-    return area.intersects(rect);
-  }
+  	public boolean intersects(Rectangle2D rect) {
+  		return area.intersects(rect);
+  	}
 
-  public boolean intersects(double x, double y, double w, double h) {
-    return area.intersects(x, y, w, h);
-  }
+  	public boolean intersects(double x, double y, double w, double h) {
+  		return area.intersects(x, y, w, h);
+  	}
 
 }

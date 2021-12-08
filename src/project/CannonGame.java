@@ -1,16 +1,23 @@
 /* Muhammet Emre Cebeci 1705950
  * 2021 - December
- * TODO: Space tusu ile buyume kuculme animasyonu ve ona gore guc
  * TODO: Dusman ( hatta dusmanlar) custom shape ekle iyi puan olur, shape icinde clipping stroke vs
- * TODO: Arkaplan ekle 
+ * TODO: yýlan sekli xor lu cisimler ile yap
+ * 
+ *  TODO: kaybedince arkaplan rengi negative olsun, image processing ile
+ * 
+ * TODO: seviye medium ve ustu oldugu zaman CÝSÝM HAREKET ETSÝN SAÐ SOL!
+ * 
  * TODO: Splash screen hazirla  * TODO:  Splash Screen de diffucult olsun
+ * TODO: Splash Screen de oyun nasil oynanilir belirt fare ile sey space ile vs
+ * 
  * TODO: Firlatma acisini ve sekil niye cannon iken platforma degemiyor ogren
  * TODO: Kalp sekli yerine top sekli olabilir veya ayrintili bir sey hmm
  * TODO: Timer ekle ki sure ile yarisip dusmani oldursun -- bence gerek yok
  * TODO: Score kisminda texture hatasini duzelt
  * 
  * TODO: cannon oldugu yere arkaplanda cisimler vs olsun base gibi hmm
- * TODO:
+ 
+
  * */
 
 package project;
@@ -34,6 +41,7 @@ import java.util.List;
 
 import shapes.Heart;
 import shapes.Cannon;
+import shapes.Enemy;
 
 import java.awt.geom.*;
 
@@ -108,7 +116,7 @@ public class CannonGame extends JFrame implements ActionListener {
 
 		JFrame frame = new CannonGame(); // To Drawing MenuBar
 		frame.setTitle("Cannon Game TEST");
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // constant class tan hmm
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); 
 		JPanel panel = gamePanel;
 		
 		frame.getContentPane().add(panel);
@@ -195,16 +203,27 @@ public class CannonGame extends JFrame implements ActionListener {
 			else
 				gamePanel.AntiAliasing = true;
 			break;
+		case "Easy":
+			gamePanel.gameDiffucultyFactor = 0.50;
+			break;
+		case "Medium":
+			gamePanel.gameDiffucultyFactor = 1;
+			break;
+		case "Hard":
+			gamePanel.gameDiffucultyFactor = 1.5;
+			break;
 		}
-
     }  
 	
-
 }
 
 class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener, MouseMotionListener, Printable { 
-	// == Graphic Render == 
+	// == Game Settings == 
 	boolean AntiAliasing = true;
+	
+	// == Game Situations ==
+	boolean isPlayerLost = false;
+	boolean isPlayerLostMessageSent = false;
 	
 	// === Area of the plot ===
 	double width;
@@ -213,8 +232,10 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	double platformY; 
 	// double platformWidth;
 	double platformHeight;
+	
 	BufferedImage backgroundImage = null;
-
+	BufferedImage backgroundImageGame = null;
+	
 	// === Shapes === 
 	Shape player = null;
 	Shape cannonBall = null;
@@ -254,7 +275,6 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	BufferedImage enemyTexture = null;
 	BufferedImage enemyTextureGame = null;
 	
-	
 	// == Enemy Animation ==
 	boolean isEnemyShooted;
 	int shootedIteration = 0;
@@ -269,8 +289,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	//double powerBarXGame;
 	double powerBarYGame;
 	// double powerBarWidthGame; do not need (width wont change when animation)
-	double powerBarHeightGame; // when space is pressed, The size is determined by ratio the current power
-	
+	double powerBarHeightGame = 150; // when space is pressed, The size is determined by ratio the current power
 	
 	// == Firing ==
 	int sample = 25; // draw sample 
@@ -282,7 +301,6 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	double fireWidth; // it is calculated with firingHeight and angle of cannon (cotangent)
 	double fireWidthInterval;
 	
-
 	// == Cannon Ball ==
 	boolean isCannonBallFired;
 	boolean isCannonBallVisible = false;
@@ -297,7 +315,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	BufferedImage brickImage = null;
 	
 	// == Game Options ==
-	double gameDiffucultyFactor = 0.75; //easy  0.25;
+	double gameDiffucultyFactor = 0.75; //easy  0.25; medium 0.75
 	
 	double enemyScaleFactor = 1; // (0,1] (for Enemy Size Scale)
 	
@@ -317,15 +335,18 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		this.platformHeight = platformHeight;
 		platformY = height-platformHeight;
 		
+		// == Cannon ==
 		cannonX = cannonWidth;
 		cannonY = platformY-cannonHeight;
 		
-		URL urlBackground = getClass().getClassLoader().getResource("resources/postapocalypse1.png");
+		// == Background ==
+		URL urlBackground = getClass().getClassLoader().getResource("resources/sky.png");
 		try {
 		   backgroundImage = ImageIO.read(urlBackground);
 		} catch (IOException ex) {
 		     ex.printStackTrace();
 		}	
+		backgroundImageGame = backgroundImage; 
 		
 		URL urlBrick = getClass().getClassLoader().getResource("resources/brick.png");
 		try {
@@ -344,10 +365,9 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		
 		// Create lives location
 		for(int i=0; i<lives; i++) {
-			// Heart yerine yildiz yap!?
+			// TODO: Heart yerine cannon yap!?
 			liveShape.add(new Heart((i)*50,0,heartWidth,heartHeight)); // i+1 de olabilir
 		}
-		
 		
 		// == Enemy ==
 		enemyWidthGame = enemyWidth; 
@@ -385,29 +405,38 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		}
 		
 		gameDraw(g2);
+		
+		if(isPlayerLost) {
+			if(isPlayerLostMessageSent == false) {
+			    isPlayerLostMessageSent = true;
+				JOptionPane.showMessageDialog(null, "Your Score: " + score, "You Lost", JOptionPane.INFORMATION_MESSAGE);	
+				// isPlayerLostMessageSent = true; infinite loop
+			}
+		}
+		
 	}
 
 	private void gameDraw(Graphics2D g2) {	
-	 	// Draw Background
-		TexturePaint tp = new TexturePaint(backgroundImage, new Rectangle2D.Double(0, 0, width, height));
-		//g2.setPaint(tp);
-		//platform = new Rectangle2D.Double(0, 0, width, height);
-		//g2.fill(platform); 
-		
-		// Draw Platform with Painting Brick Texture
+	 	// == Draw Background == 
+		TexturePaint tp = new TexturePaint(backgroundImageGame, new Rectangle2D.Double(0, 0, width, height));
+		g2.setPaint(tp);
+		platform = new Rectangle2D.Double(0, 0, width, height);
+		g2.fill(platform); 
+	
+		// == Draw Platform with Painting Brick Texture ==
 		tp = new TexturePaint(brickImage, new Rectangle2D.Double(0, platformY, 25, 25));
 		g2.setPaint(tp);
 	    platform = new Rectangle2D.Double(platformX, platformY, width, platformHeight);
 	    g2.fill(platform);
 	    
-		// Draw Cannon Ball and Tracking Fire Lines
+		// == Draw Cannon Ball and Tracking Fire Lines ==
 		if(isCannonBallVisible) {
 			cannonBall = new Ellipse2D.Double(cannonBallX - cannonBallWidth/2, cannonBallY - cannonBallHeight/2, cannonBallWidth, cannonBallHeight);
 			GradientPaint ballPaint = new GradientPaint(100,300, Color.BLACK, (int) width /2 , (int) height /2 , Color.RED);
 			g2.setPaint(ballPaint);
 			g2.fill(cannonBall);
 		}
-		
+	
 		float[] dashArray = {10};
 		int dashPhase = 0;
 		BasicStroke stroke = new BasicStroke(3, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 0,
@@ -418,7 +447,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		}
 		
 		
-		// Drawing Score Label (Responsively for number digit changes with frc)
+		// == Drawing Score Label == (Responsively for number digit changes with frc)
 		FontRenderContext frc;
 		Font scoreLabelFont = new Font("Serif",Font.BOLD,24);	
 		String scoreLabel = "Score: " + String.valueOf(score);
@@ -430,7 +459,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		double scoreLabelY = textHeight;
 		g2.drawString(scoreLabel,(int) scoreLabelX, (int)scoreLabelY);
 		
-		// Draw Lives Shapes
+		// == Draw Lives Shapes ==
 		for(int i = 0; i< lives ;i++) {
 			g2.setColor(Color.RED);
 			g2.fill(liveShape.get(i));
@@ -441,26 +470,29 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
         	score = 0;
             lives = 5;
             enemyScaleFactor = 1;
-            spawnEnemy();
+            isPlayerLost = true;
+            //spawnEnemy();
         }
         
-		// Drawing Power Bar
+		// == Drawing Power Bar ==
 	    if(isSpacePressed) {
+	        GradientPaint powerBarPaint = new GradientPaint((int) powerBarX + (int)(powerBarWidth/2), (int) powerBarY 
+	        		, Color.red, (int) powerBarX + (int)(powerBarWidth/2),
+	        		(int) powerBarY + (int) powerBarHeight, Color.green, true);
+	        g2.setPaint(powerBarPaint);
 	    	powerBar = new Rectangle2D.Double(powerBarX,powerBarYGame,powerBarWidth,powerBarHeightGame);
 	    	g2.fill(powerBar);
-	    	System.out.println(powerBarYGame+" "+powerBarHeightGame);
 	    }  
         
-        // Draw Enemy
-        //g2.setColor(Color.BLACK);
+        // == Draw Enemy ==
         tp = new TexturePaint(enemyTextureGame, new Rectangle2D.Double(enemyX, enemyY, enemyWidthGame, enemyHeightGame));
         g2.setPaint(tp);
         
-        enemy = new Rectangle2D.Double(enemyX,enemyY,enemyWidthGame,enemyHeightGame);
+        enemy = new Enemy(enemyX,enemyY,enemyWidthGame); // enemyHeightGame
         
         g2.fill(enemy);
         
-		// Draw Player
+		// == Draw Player ==
 	    g2.setColor(Color.BLACK);
 		player = new Cannon(cannonX,cannonY,cannonWidth,cannonHeight); // To draw, Create as Base Class (Shape not Cannon)
 		if(!keyPressed ) { //  fixes that movement rotate glitch	
@@ -481,7 +513,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 			checkPanelLimits();
 			checkShootedEnemyAnimation(); // for shooted enemy animation with image processing
 			
-			repaint();
+			repaint(); // calls paintComponent!
 			
 			try {
 				Thread.sleep(20); // speed
@@ -502,7 +534,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 					powerBarHeightGame -= 10;
 				}
 			} else { // bar is falling down
-				if(powerBarHeightGame>0) {
+				if(powerBarHeightGame>10) { // not to 10 because under 10 is very slow
 					powerBarHeightGame -= 10;
 				} else {
 					isPowerBarRises = true; // if it is on min position
@@ -511,8 +543,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 			}
 			powerBarYGame = powerBarY + powerBarHeight - powerBarHeightGame;
 	
-			fireHeight =  fireHeightMax * (powerBarHeightGame / powerBarHeight); // ratio of	
-			
+			fireHeight =  fireHeightMax * (powerBarHeightGame / powerBarHeight); // IMPORTANT: ratio 
 		}
 	}
 
@@ -523,29 +554,11 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 			firingLineList.clear(); // clear firing Line List
 			
 			if(shootedIteration < 5) {
-				// Image in ile same size ve same color type
-				BufferedImage imageOut = new BufferedImage(enemyTextureGame.getWidth(),enemyTextureGame.getHeight(),enemyTextureGame.getType());
-				// recommended fastest one, raster image matrix'i alip mudahale ederek hizli write ozelligi saglar, bufferedimage ile mudahale yavastir!
-				WritableRaster rasterImgIn = enemyTextureGame.getRaster();
-				WritableRaster rasterImgOut = imageOut.getRaster();
-			
-				int[] rgba = new int[4]; // a alpha channel dir, transparency'i gosterir, bu ornekte sadece rgb mudahalesi olacak. alpha channel kalacak
-			
-				for(int y=0; y<enemyTextureGame.getHeight(); y++) { // piksel satir satir 
-					for(int x=0; x<enemyTextureGame.getWidth(); x++) {
-					
-						// piksele gore cikis, raster hizlilik saglar buffered image ile tek tek deseydik yavas olurdu
-						rasterImgIn.getPixel(x, y, rgba); // rgba ya yazilir
-						// pixel = r+g+b/3
-						int gray = (int) (rgba[0] + rgba[1] + rgba[2] / 5f);
-						rgba [0] = rgba[1]= rgba[2] = gray;
-						rasterImgOut.setPixel(x, y, rgba);
-					}
-					enemyTextureGame = imageOut;
-				}
-						
+				// change image
+				enemyTextureGame = imageGrayScale(enemyTextureGame);
 				shootedIteration++;
 				return;
+				
 			} else { // if enemy shooted animation iteration ends
 				isCannonBallVisible = false;
 				firingIteration = 0;
@@ -565,6 +578,9 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 				isEnemyShooted = false;
 				shootedIteration = 0;
 				
+				backgroundImageGame = imageRGBFilter(backgroundImageGame,0,score * +10); // red filter
+				backgroundImageGame = imageRGBFilter(backgroundImageGame,2,score * -5); // blue filter
+				
 				enemyTextureGame = enemyTexture; 
 				score += 1;
 				
@@ -574,7 +590,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 			}	
 			
 		}
-			
+		
 	}
 	
 	//checkPanelLimits for player
@@ -586,9 +602,9 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 			cannonX = width - cannonWidth; // sinira geri goturur
 		} */
 		
-		// middle of width limit
+		// width/4 limit
 		if(cannonX + cannonWidth > width/4) {
-			cannonX  =  width/4 - cannonWidth; // 
+			cannonX  =  width/4 - cannonWidth; 
 		}
 
 	}
@@ -604,12 +620,12 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 				cannonBallX = cannonX + cannonWidth;
 				cannonBallY = cannonY + cannonHeight/2;
 				
+				// fireHeight is calculated by power bar
 				// Important!
 				// English : r is found by taking the cotangent according to the height. So rotate angle and h and r are found.
-				// Turkish: Yukseklige gore kotanjant alinarak r bulunur. Yani rotate acisi  ve h ile r bulunur
-				fireWidth = fireHeight * Math.atan2(1, -(cannonAngle*-90)) ; // cot(cannonAngle)=tan(1/-cannonAngle), defterde cizdin
+				// Turkish: Yukseklige gore kotanjant alinarak r bulunur. Yani rotate acisi  ve h ile r bulunur, , defterde cizdin
+				fireWidth = fireHeight * Math.atan2(1, -(cannonAngle*-90)) ; // cot(cannonAngle)=tan(1/-cannonAngle)
 				
-				// fireHeight= // TODO: Setting power
 				fireWidthInterval = fireWidth / sample ;
 				fireHeightInterval = fireHeight / sample;
 				//System.out.println("Fire Activated "+" fireWidth "+ fireWidth+" fireWidthInterval "+fireWidthInterval);
@@ -680,6 +696,73 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		}
 	}
 	
+	private BufferedImage imageRGBFilter(BufferedImage img, int selectedRGB, int value) {
+		BufferedImage imageOut = new BufferedImage(img.getWidth(),img.getHeight(),img.getType());
+		WritableRaster rasterImgIn = img.getRaster();
+		WritableRaster rasterImgOut = imageOut.getRaster();
+		
+		int[] rgba = new int[4]; 
+		for(int y=0; y<img.getHeight(); y++) { //
+			for(int x=0; x<img.getWidth(); x++) {
+				rasterImgIn.getPixel(x, y, rgba); 
+				
+				switch(selectedRGB) {
+				case 0:
+					rgba[0] += value;
+					if(rgba[0]>255) { // if the value is exceeded 255
+						rgba[0] = 255;
+					}
+					if(rgba[0]<0) { // if the value is exceeded 255
+						rgba[0] = 0;
+					}
+					break;
+				case 1:
+					rgba[1] += value;
+					if(rgba[1]>255) { // if the value is exceeded 255
+						rgba[1] = 255;
+					}
+					if(rgba[1]<0) { // if the value is exceeded 255
+						rgba[1] = 0;
+					}
+					break;
+				case 2:
+					rgba[2] += value;
+					if(rgba[1]>255) { // if the value is exceeded 255
+						rgba[1] = 255;
+					}
+					if(rgba[1]<0) { // if the value is exceeded 255
+						rgba[1] = 0;
+					}
+					break;
+				}
+				
+				rasterImgOut.setPixel(x, y, rgba);
+			}
+		}
+		
+		return imageOut;
+		// img.setRGB(255,0,0);
+		//return img;
+	}
+
+	private BufferedImage imageGrayScale(BufferedImage img) {
+		BufferedImage imageOut = new BufferedImage(img.getWidth(),img.getHeight(),img.getType());
+		WritableRaster rasterImgIn = img.getRaster();
+		WritableRaster rasterImgOut = imageOut.getRaster();
+	
+		int[] rgba = new int[3]; 
+		for(int y=0; y<img.getHeight(); y++) { 
+			for(int x=0; x<img.getWidth(); x++) {
+				rasterImgIn.getPixel(x, y, rgba); 
+				int gray = (int) (rgba[0] + rgba[1] + rgba[2] / 5f);
+				rgba [0] = rgba[1]= rgba[2] = gray;
+				rasterImgOut.setPixel(x, y, rgba);
+			}
+		}
+		
+		return imageOut;
+	}
+
 	private void spawnEnemy() {
 		enemyY= platformY-enemyHeight;
 		minEnemyX = width/4; // after width/4
@@ -691,7 +774,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 
 		// Update Enemy factor for drawing on as Scale
 		// if the score rises , the game goes to hard.
-		if(score>1) { // prevent 1/0 problem
+		if(score>1) { // prevent 1 divide by 0 problem
 			enemyScaleFactor = 1 / (score * gameDiffucultyFactor); // results must be range of (0,1]
 		}
 		
@@ -703,13 +786,13 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		enemyY= platformY-enemyHeightGame;
 		
 		// Next enemy Lives
-		// TODO: Score a gore zorluk artsin?
+		// TODO: Score a gore can zorlugu artsin?
 		enemyLivesGame = enemyLives;
 				
 		// Resetting Enemy Texture
 		enemyTextureGame = enemyTexture;
 		
-		System.out.println(enemyX+" "+enemyScaleFactor);
+		//System.out.println("Enemy Spawned X:"+enemyX+" Scaling factor:"+enemyScaleFactor);
 	}
 
 	@Override
@@ -746,7 +829,6 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 			if(!isCannonBallFired) {
 				if(!isSpacePressed) { // checking the power bar is active
 					isSpacePressed = true;	
-					System.out.println("Pressed space");	
 				}
 			}
 			
@@ -757,11 +839,11 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	public void keyReleased(KeyEvent e) {
 		keyPressed = false;
 		switch(e.getKeyCode()) {
-			case KeyEvent.VK_SPACE:
-				isSpacePressed = false; // stopping the bar animation
-				isCannonBallFired = true;
+			case KeyEvent.VK_SPACE: // Power bar is released
+				isSpacePressed = false; // stopping the bar animation and hide the bar
+				isCannonBallFired = true; // fire the ball
 				
-				powerBarHeightGame = 50;
+				powerBarHeightGame = 150; // set default power bar to 150
 				isPowerBarRises = true;
 				break;
 		}
@@ -813,29 +895,43 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	}
 	
 	public void restartGame() {
+		// == Player Situation == 
+		isPlayerLost = false;
+		isPlayerLostMessageSent = false;
+		
+		// == Background ==
+		backgroundImageGame = backgroundImage; // resetting image
+		
+		// == Cannon ==
 		cannonX = cannonWidth;
 		cannonY = platformY-cannonHeight;
 		cannonAngle = 0;
 		
-		isCannonBallFired = false;
-		firingIteration = 0;
-		
+		// == Cannon Ball and Firing List == 
 		isCannonBallVisible = false;
+		isCannonBallFired = false;
+		
 		cannonBallX = 0;
 		cannonBallY = 0;
-		
+		firingIteration = 0;
 		firingLineList.clear();
 		
+		// == Enemy ==
+		enemyScaleFactor = 1;
+		
+		// == Power Bar ==
 		isSpacePressed = false; 
 		isPowerBarRises = true;
 		
+		// == Score and Lives ==
 		score = 0;
 		lives = 5;
 		
+		// == Re-Spawn Enemy == 
 		spawnEnemy();
 		
+		// == Repaint ==
 		repaint();	 
-		//System.out.println("Game is restarted!");
 	}
 	
 	  public int print(Graphics g, PageFormat pf, int pageIndex) {
@@ -858,12 +954,23 @@ class SplashPanel extends JPanel {
 
 	public SplashPanel() {
 		setPreferredSize(new Dimension(600, 600));
+		
 		setBackground(Color.MAGENTA);
 	}
 
 	public void paintComponent(Graphics g) {
 		super.paintComponent(g);
 		Graphics2D g2 = (Graphics2D) g;
-
+		
+		FontRenderContext frc;
+		Font headerLabelFont = new Font("Helvetica",Font.BOLD,24);	
+		String headerLabel = "Created by Muhammet Emre Cebeci";
+		g2.setFont(headerLabelFont);
+		frc = g2.getFontRenderContext();
+		double textWidth = headerLabelFont.getStringBounds(headerLabel,frc).getWidth();
+		double textHeight =  headerLabelFont.getStringBounds(headerLabel,frc).getHeight();
+		g2.drawString(headerLabel,(int) (300 - textWidth/2), (int) textHeight);
+		
+		
 	}
 }
