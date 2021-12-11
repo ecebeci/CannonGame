@@ -1,19 +1,13 @@
 /* Muhammet Emre Cebeci 1705950
  * 2021 - December
- * TODO: Dusman ( hatta dusmanlar) custom shape ekle iyi puan olur, shape icinde clipping stroke vs
+ * TODO:  shape icinde clipping stroke vs
  * TODO: yýlan sekli xor lu cisimler ile yap
- * 
- * TODO: seviye medium ve ustu oldugu zaman CÝSÝM HAREKET ETSÝN SAÐ SOL!
  * 
  * TODO: Splash screen hazirla  * TODO:  Splash Screen de diffucult olsun
  * TODO: Splash Screen de oyun nasil oynanilir belirt fare ile sey space ile vs
  * 
  * TODO: Kalp sekli yerine top sekli olabilir veya ayrintili bir sey hmm
- * TODO: Timer ekle ki sure ile yarisip dusmani oldursun -- bence gerek yok
- * TODO: Score kisminda texture hatasini duzelt
- * 
- * TODO: cannon oldugu yere arkaplanda cisimler vs olsun base gibi hmm
- 
+
  Base ve Splash Screen hazirla biter oyun
 
  * */
@@ -239,6 +233,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	Shape platform = null;
 	Shape enemy = null;
 	Shape powerBar = null;
+	Shape castle = null;
 	
 	// == Cannon == 
 	double cannonX;
@@ -311,6 +306,9 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	double cannonBallWidth = 20;
 	double cannonBallHeight = 20;
 	
+	// == Castle ==
+	BufferedImage castleImage = null;
+	
 	// == Platform == 
 	BufferedImage brickImage = null;
 	
@@ -326,7 +324,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	int heartWidth = 50;
 	int heartHeight = 50;
 
-
+	
 	public GamePanel(int width, int height, int platformHeight) {
 		setPreferredSize(new Dimension(width, height)); 
 		setBackground(Color.LIGHT_GRAY);	
@@ -363,6 +361,13 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		}	
 		enemyTextureGame = enemyTexture;
 		
+		URL urlCastleTexture = getClass().getClassLoader().getResource("resources/castle.png");
+		try {
+		   castleImage = ImageIO.read(urlCastleTexture);
+		} catch (IOException ex) {
+		     ex.printStackTrace();
+		}	
+
 		// Create lives location
 		for(int i=0; i<lives; i++) {
 			// TODO: Heart yerine cannon yap!?
@@ -434,6 +439,12 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	    platform = new Rectangle2D.Double(platformX, platformY, width, platformHeight);
 	    g2.fill(platform);
 	    
+	    // == Draw Castle ==
+		tp = new TexturePaint(castleImage, new Rectangle2D.Double(width/15, 2*height/5 -1, width/5, height - 2*height/5 - platformHeight));
+		g2.setPaint(tp);
+		castle = new Rectangle2D.Double(width/15, 2*height/5, width/5, height - 2*height/5 - platformHeight);
+		g2.fill(castle); 
+	    
 		// == Draw Cannon Ball and Tracking Fire Lines ==
 		if(isCannonBallVisible) {
 			cannonBall = new Ellipse2D.Double(cannonBallX - cannonBallWidth/2, cannonBallY - cannonBallHeight/2, cannonBallWidth, cannonBallHeight);
@@ -452,10 +463,11 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		}
 		
 		// == Drawing Score Label == (Responsively for number digit changes with frc)
-		g2.setPaint(null);
+		
 		FontRenderContext frc;
 		Font scoreLabelFont = new Font("Serif",Font.BOLD,24);	
 		String scoreLabel = "Score: " + String.valueOf(score);
+		g2.setPaint(Color.GREEN);
 		g2.setFont(scoreLabelFont);
 		frc = g2.getFontRenderContext();
 		double textWidth = scoreLabelFont.getStringBounds(scoreLabel,frc).getWidth();
@@ -490,8 +502,6 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	    }  
         
         // == Draw Enemy ==
-        tp = new TexturePaint(enemyTextureGame, new Rectangle2D.Double(enemyX, enemyY, enemyWidthGame, enemyHeightGame));
-        g2.setPaint(tp);
         
         float enemyTransparency = 1f;
         if(enemyLivesGame>0) {
@@ -501,11 +511,12 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
         	}
         }
         
-        enemy = new Enemy(g2,enemyX,enemyY,enemyWidthGame, enemyLivesGame > 0 ? enemyTransparency : 1f); 
+        enemy = new Enemy(g2,enemyX,enemyY,enemyWidthGame, enemyLivesGame > 0 ? enemyTransparency : 1f, enemyTextureGame,enemyTextureGame,enemyTextureGame); 
         // enemyHeightGame is not required
         // enemyLivesGame = 1 - 1/lives transparency levels 0 to 1
         
         g2.fill(enemy);
+        g2.setPaint(Color.BLACK);
         
 		// == Draw Player ==
 	    g2.setColor(Color.BLACK);
@@ -812,7 +823,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		// Update Enemy factor for drawing on as Scale
 		// if the score rises , the game goes to hard.
 		if(score>1) { // prevent 1 divide by 0 problem
-			enemyScaleFactor = 1 / (score * gameDiffucultyFactor); // results must be range of (0,1]
+			enemyScaleFactor = 1 / (score * gameDiffucultyFactor) ; // results must be range of (0,1]
 		}
 		
 	     // Checking scale factor in (0,1] range, but if enemyScaleFactor=1 there is no need for translation
@@ -834,7 +845,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		// Resetting Enemy Texture
 		enemyTextureGame = enemyTexture;
 		
-		//System.out.println("Enemy Spawned X:"+enemyX+" Scaling factor:"+enemyScaleFactor);
+		System.out.println("Enemy Spawned X:"+enemyX+" Scaling factor:"+enemyScaleFactor);
 	}
 
 	@Override
@@ -1016,6 +1027,7 @@ class SplashPanel extends JPanel {
 		double textHeight =  headerLabelFont.getStringBounds(headerLabel,frc).getHeight();
 		g2.drawString(headerLabel,(int) (300 - textWidth/2), (int) textHeight);
 		
+		//String headerLabel = "Easy de degisiklik";
 		
 	}
 }
