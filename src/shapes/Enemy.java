@@ -18,23 +18,23 @@ public class Enemy implements Shape {
 		// transparency 0f to 1f. 0 is 0%, 1 is 100%
 		//System.out.println(transparency);
 		AlphaComposite ac = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, transparency);  
-		g2.setComposite(ac); // TODO: Duzelt
+		g2.setComposite(ac); 
 		
 		
-		Shape s1 = new Ellipse2D.Double(x,y,diameter,diameter); // First Circle
-	    tp = new TexturePaint(texture1, new Rectangle2D.Double(x, y, diameter, diameter));
+		Shape s3 = new Ellipse2D.Double(x,y+ 2*division + 2*division,diameter,diameter);// Third Circle
+	    tp = new TexturePaint(texture3, new Rectangle2D.Double(x,y+ 2*division + 2*division,diameter,diameter));
 	    g2.setPaint(tp);
-		g2.fill(s1);
+		g2.fill(s3);
 		
 		Shape s2 = new Ellipse2D.Double(x,y+ 2*division,diameter,diameter);// Second Circle
 	    tp = new TexturePaint(texture2, new Rectangle2D.Double(x,y+ 2*division,diameter,diameter));
 	    g2.setPaint(tp);
 		g2.fill(s2);
 		
-		Shape s3 = new Ellipse2D.Double(x,y+ 2*division + 2*division,diameter,diameter);// Third Circle
-	    tp = new TexturePaint(texture3, new Rectangle2D.Double(x,y+ 2*division + 2*division,diameter,diameter));
+		Shape s1 = new Ellipse2D.Double(x,y,diameter,diameter); // First Circle
+	    tp = new TexturePaint(texture1, new Rectangle2D.Double(x, y, diameter, diameter));
 	    g2.setPaint(tp);
-		g2.fill(s3);
+		g2.fill(s1);
 		
 		area = new Area(s3); // circlee);
 		Area areaS2 = new Area(s2);
