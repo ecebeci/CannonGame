@@ -21,15 +21,10 @@ public class Cannon implements Shape {
 			}
 		}
 		
-		
 		area = new Area(s1);
 	    Area areaS2 = new Area(s2);
 	    area.add(areaS2); // Area add
 	   
-	}
-	
-	public void rotateBarrel(double angle) {
-		//return area.contains(rect);
 	}
 	
 	public boolean contains(Rectangle2D rect) {

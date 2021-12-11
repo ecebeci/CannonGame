@@ -3,20 +3,18 @@
  * TODO: Dusman ( hatta dusmanlar) custom shape ekle iyi puan olur, shape icinde clipping stroke vs
  * TODO: yýlan sekli xor lu cisimler ile yap
  * 
- *  TODO: kaybedince arkaplan rengi negative olsun, image processing ile
- * 
  * TODO: seviye medium ve ustu oldugu zaman CÝSÝM HAREKET ETSÝN SAÐ SOL!
  * 
  * TODO: Splash screen hazirla  * TODO:  Splash Screen de diffucult olsun
  * TODO: Splash Screen de oyun nasil oynanilir belirt fare ile sey space ile vs
  * 
- * TODO: Firlatma acisini ve sekil niye cannon iken platforma degemiyor ogren
  * TODO: Kalp sekli yerine top sekli olabilir veya ayrintili bir sey hmm
  * TODO: Timer ekle ki sure ile yarisip dusmani oldursun -- bence gerek yok
  * TODO: Score kisminda texture hatasini duzelt
  * 
  * TODO: cannon oldugu yere arkaplanda cisimler vs olsun base gibi hmm
  
+ Base ve Splash Screen hazirla biter oyun
 
  * */
 
@@ -51,7 +49,6 @@ import javax.swing.event.MenuKeyListener;
 
 import java.awt.print.*;
 
-// konudan emin ol!
 public class CannonGame extends JFrame implements ActionListener {
 	
 	static GamePanel gamePanel = new GamePanel(1200,400,50);
@@ -272,6 +269,9 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	double enemyLives;
 	double enemyLivesGame;
 	
+	double enemySpeed;
+	boolean ifEnemyMovingRight = true;
+	
 	BufferedImage enemyTexture = null;
 	BufferedImage enemyTextureGame = null;
 	
@@ -373,6 +373,9 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		enemyWidthGame = enemyWidth; 
 		enemyHeightGame = enemyHeight;
 		
+		minEnemyX = width/4; // after width/4
+		maxEnemyX = width - enemyWidth;
+		
 		enemyLivesGame = enemyLives;
 		
 		// == Firing ==
@@ -449,6 +452,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		}
 		
 		// == Drawing Score Label == (Responsively for number digit changes with frc)
+		g2.setPaint(null);
 		FontRenderContext frc;
 		Font scoreLabelFont = new Font("Serif",Font.BOLD,24);	
 		String scoreLabel = "Score: " + String.valueOf(score);
@@ -466,13 +470,13 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 			g2.fill(liveShape.get(i));
 		}
 		
-		// TODO: Can inince oyunu durdurup ekran cikar
         if(lives < 1) {
         	//score = 0;
             //lives = 5;
+        	 //spawnEnemy();
             enemyScaleFactor = 1;
             isPlayerLost = true;
-            //spawnEnemy();
+            backgroundImageGame = imageGrayScale(backgroundImage);
         }
         
 		// == Drawing Power Bar ==
@@ -519,6 +523,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	@Override
 	public void run() {
 		while(true) {
+			checkEnemyMovingAnimation();
 			checkPowerBar();
 			checkBallFiring();		
 			checkCollision();
@@ -536,6 +541,31 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		}
 	}
 	
+	private void checkEnemyMovingAnimation() {
+		if(!isPlayerLost) {
+			if(!isEnemyShooted) {
+				
+				if(gameDiffucultyFactor >= 0.5) { // Medium and Hard
+					if(ifEnemyMovingRight) {
+						if(enemyX + enemyHeight + enemySpeed < width) {
+						enemyX += enemySpeed;
+						} else {
+						ifEnemyMovingRight = false;
+						}
+					} else {
+						if(enemyX - enemySpeed > minEnemyX) {
+							enemyX -= enemySpeed;
+						} else {
+							ifEnemyMovingRight = true;
+						}
+					}
+				}
+			}
+			
+		}
+	}
+
+
 	private void checkPowerBar() {
 		if(isSpacePressed) {
 			if(isPowerBarRises) { // bar is rising up
@@ -577,10 +607,8 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 				
 				isEnemyShooted = false;
 				shootedIteration = 0;
-				
-				enemyX = minEnemyX + (Math.random() * (maxEnemyX - minEnemyX)); // Changes x
+			
 				enemyTextureGame = enemyTexture; // revert texture to normal
-				
 			}
 			
 			if(enemyLivesGame < 1) {  // if enemy lives is 0
@@ -724,7 +752,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 					if(rgba[0]>255) { // if the value is exceeded 255
 						rgba[0] = 255;
 					}
-					if(rgba[0]<0) { // if the value is exceeded 255
+					if(rgba[0]<0) { 
 						rgba[0] = 0;
 					}
 					break;
@@ -733,7 +761,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 					if(rgba[1]>255) { // if the value is exceeded 255
 						rgba[1] = 255;
 					}
-					if(rgba[1]<0) { // if the value is exceeded 255
+					if(rgba[1]<0) { 
 						rgba[1] = 0;
 					}
 					break;
@@ -742,7 +770,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 					if(rgba[1]>255) { // if the value is exceeded 255
 						rgba[1] = 255;
 					}
-					if(rgba[1]<0) { // if the value is exceeded 255
+					if(rgba[1]<0) { // if the value is below 0
 						rgba[1] = 0;
 					}
 					break;
@@ -753,8 +781,6 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		}
 		
 		return imageOut;
-		// img.setRGB(255,0,0);
-		//return img;
 	}
 
 	private BufferedImage imageGrayScale(BufferedImage img) {
@@ -762,11 +788,11 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		WritableRaster rasterImgIn = img.getRaster();
 		WritableRaster rasterImgOut = imageOut.getRaster();
 	
-		int[] rgba = new int[3]; 
+		int[] rgba = new int[4]; 
 		for(int y=0; y<img.getHeight(); y++) { 
 			for(int x=0; x<img.getWidth(); x++) {
 				rasterImgIn.getPixel(x, y, rgba); 
-				int gray = (int) (rgba[0] + rgba[1] + rgba[2] / 5f);
+				int gray = (int) (rgba[0] + rgba[1] + rgba[2] / 10f);
 				rgba [0] = rgba[1]= rgba[2] = gray;
 				rasterImgOut.setPixel(x, y, rgba);
 			}
@@ -776,13 +802,12 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	}
 
 	private void spawnEnemy() {
-		enemyY= platformY-enemyHeight;
-		minEnemyX = width/4; // after width/4
-		maxEnemyX = width - enemyWidth;
 		
-		enemyX = minEnemyX + (Math.random() * (maxEnemyX - minEnemyX)); // Math.random takes a number [0,1) range.
 		// min +  1 ( max - min) = max
 		// min + 0 (max - min) = min
+		enemyX = minEnemyX + (Math.random() * (maxEnemyX - minEnemyX)); // Math.random takes a number [0,1) range.
+		enemyY= platformY-enemyHeight;
+		
 
 		// Update Enemy factor for drawing on as Scale
 		// if the score rises , the game goes to hard.
@@ -799,9 +824,12 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		
 		// Next enemy Lives
 		// TODO: Score will increased by score and diffuculty factor
-		// score *  gameDiffucultyFactor hmm
+		// score *  gameDiffucultyFactor 
 		enemyLives = 3 + (score/2) * gameDiffucultyFactor;
 		enemyLivesGame = enemyLives;
+		
+		// Enemy Speed
+		enemySpeed = 3 + ( score * gameDiffucultyFactor) +  (enemyLives-enemyLivesGame+1);
 				
 		// Resetting Enemy Texture
 		enemyTextureGame = enemyTexture;
