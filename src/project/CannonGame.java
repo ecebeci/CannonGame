@@ -489,7 +489,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		
 		// == Drawing Score Label == (Responsively for number digit changes with frc)
 		FontRenderContext frc;
-		Font scoreLabelFont = new Font("Helvatica",Font.PLAIN,24);	
+		Font scoreLabelFont = new Font("Trebuchet",Font.PLAIN,24);	
 		String scoreLabel = "Score: " + String.valueOf(score);
 		g2.setPaint(Color.BLUE);
 		g2.setFont(scoreLabelFont);
@@ -507,7 +507,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		}
 		
 		// == Draw Difficulty Label ==
-		Font difficultyLabelFont = new Font("Helvatica",Font.ITALIC,24);	
+		Font difficultyLabelFont = new Font("Trebuchet",Font.PLAIN,18);	
 		String difficultyLabel = "";
 		if(gameDiffucultyFactor ==  0.75) {
 			difficultyLabel = "Difficulty: Hard";
@@ -519,10 +519,10 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		
 		g2.setPaint(Color.BLUE);
 		g2.setFont(difficultyLabelFont);
-		double difficultyLabelWidth = scoreLabelFont.getStringBounds(difficultyLabel,frc).getWidth();
-		double difficultyLabelHeight =  scoreLabelFont.getStringBounds(difficultyLabel,frc).getHeight();
+		double difficultyLabelWidth = difficultyLabelFont.getStringBounds(difficultyLabel,frc).getWidth();
+		double difficultyLabelHeight =  difficultyLabelFont.getStringBounds(difficultyLabel,frc).getHeight();
 		double difficultyLabelX = scoreLabelX - difficultyLabelWidth - 10; 
-		double difficultyLabelY = difficultyLabelHeight;
+		double difficultyLabelY = scoreLabelHeight;
 		g2.drawString(difficultyLabel,(int) difficultyLabelX, (int)difficultyLabelY);
         
 		// == Drawing Power Bar ==
@@ -1053,28 +1053,90 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	  }
 }
 
-class SplashPanel extends JPanel {
+class SplashPanel extends JPanel implements Runnable {
 
+	BufferedImage textImage = null;
+	BufferedImage instruction1 = null;
+    BufferedImage instruction2 = null;
+    
+	double backgroundX = 0;
+	
 	public SplashPanel() {
 		setPreferredSize(new Dimension(600, 600));
 		
 		setBackground(Color.MAGENTA);
+		
+		URL url = getClass().getClassLoader().getResource("resources/creditsTexture.png");
+		try {
+			textImage = ImageIO.read(url);
+		} catch (IOException ex) {
+		     ex.printStackTrace();
+		}
+		
+		url = getClass().getClassLoader().getResource("resources/instr1.png");
+		try {
+			instruction1 = ImageIO.read(url);
+		} catch (IOException ex) {
+		     ex.printStackTrace();
+		}
+		
+		url = getClass().getClassLoader().getResource("resources/instr2.png");
+		try {
+			instruction2 = ImageIO.read(url);
+		} catch (IOException ex) {
+		     ex.printStackTrace();
+		}
 	}
 
 	public void paintComponent(Graphics g) {
 		super.paintComponent(g);
 		Graphics2D g2 = (Graphics2D) g;
 		
+	 	// == Draw Background == 
+	
+		// == Instructions == 
+		g2.drawImage (instruction1,30,50,null);
+		g2.drawImage (instruction2,400,250,null);
+		
+		// == Credits ==
+		TexturePaint tp = new TexturePaint(textImage, new Rectangle2D.Double(-backgroundX, 0, 2000, 600));
+		g2.setPaint(tp); 
 		FontRenderContext frc;
-		Font headerLabelFont = new Font("Helvetica",Font.BOLD,24);	
-		String headerLabel = "Created by Muhammet Emre Cebeci";
+		Font headerLabelFont = new Font("Trebuchet",Font.PLAIN,18);	
+		String headerLabel = "Created by M. Emre Cebeci";
 		g2.setFont(headerLabelFont);
 		frc = g2.getFontRenderContext();
 		double textWidth = headerLabelFont.getStringBounds(headerLabel,frc).getWidth();
-		double textHeight =  headerLabelFont.getStringBounds(headerLabel,frc).getHeight();
+		double textHeight =  600 - headerLabelFont.getStringBounds(headerLabel,frc).getHeight();
 		g2.drawString(headerLabel,(int) (300 - textWidth/2), (int) textHeight);
 		
 		//String headerLabel = "Easy de degisiklik";
+		
+		Thread thread = new Thread(this);
+		thread.start();
+		
+	}
+
+	@Override
+	public void run() {
+		while(true) {
+			checkBackgroundAnimation();
+			
+			repaint(); // calls paintComponent!
+			
+			try {
+				Thread.sleep(2000); // speed
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}	
+		}
+	}
+
+	private void checkBackgroundAnimation() {
+		if(backgroundX+1<2000)
+		backgroundX += 0.1;
+		else 
+			backgroundX = 0;
 		
 	}
 }
