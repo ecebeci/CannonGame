@@ -4,7 +4,6 @@ package shapes;
 import java.awt.*;
 import java.awt.geom.*;
 import java.awt.image.*;
-import javax.swing.*;
 
 public class Enemy implements Shape {
 	Area area;

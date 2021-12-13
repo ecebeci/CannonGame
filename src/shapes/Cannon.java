@@ -2,7 +2,6 @@ package shapes;
 
 import java.awt.*;
 import java.awt.geom.*;
-import javax.swing.*;
 
 public class Cannon implements Shape {  
 	Area area;

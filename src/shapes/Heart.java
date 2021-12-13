@@ -4,7 +4,6 @@ package shapes;
 
 import java.awt.*;
 import java.awt.geom.*;
-import javax.swing.*;
 
 public class Heart implements Shape {
 	GeneralPath path;

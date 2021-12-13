@@ -1,30 +1,14 @@
 /* Muhammet Emre Cebeci 1705950
+ * Simple 2D Game Project for Computer Graphics Lesson 
  * 2021 - December
- * TODO:  shape icinde clipping stroke vs
- * TODO: y�lan sekli xor lu cisimler ile yap
- * 
- * TODO: Splash screen hazirla  * TODO:  Splash Screen de diffucult olsun
- * TODO: Splash Screen de oyun nasil oynanilir belirt fare ile sey space ile vs
- * 
- * TODO: Kalp sekli yerine top sekli olabilir veya ayrintili bir sey hmm
-
- Base ve Splash Screen hazirla biter oyun
-
- * */
+*/
 
 package project;
 
 import java.awt.*;
-import java.awt.color.ColorSpace;
 import java.awt.event.*;
 import java.awt.font.FontRenderContext;
-import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
-import java.awt.image.BufferedImageOp;
-import java.awt.image.ColorConvertOp;
-import java.awt.image.ConvolveOp;
-import java.awt.image.Kernel;
-import java.awt.image.RescaleOp;
 import java.awt.image.WritableRaster;
 import java.io.IOException;
 import java.net.URL;
@@ -39,10 +23,10 @@ import java.awt.geom.*;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
-import javax.swing.event.MenuKeyListener;
 
 import java.awt.print.*;
 
+@SuppressWarnings("serial")
 public class CannonGame extends JFrame implements ActionListener {
 	
 	static GamePanel gamePanel = new GamePanel(1200,400,50);
@@ -209,6 +193,7 @@ public class CannonGame extends JFrame implements ActionListener {
 	
 }
 
+@SuppressWarnings("serial")
 class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener, MouseMotionListener, Printable { 
 	// == Game Settings == 
 	boolean AntiAliasing = true;
@@ -239,8 +224,8 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	// == Cannon == 
 	double cannonX;
 	double cannonY;
-	double cannonWidth = 70; // TODO : geometrik oranla!
-	double cannonHeight = 50; // TODO : geometrik oranla!
+	double cannonWidth = 70; 
+	double cannonHeight = 50; 
 	double cannonAngle = 0;
 	AffineTransform atCannon = new AffineTransform();
 	boolean keyPressed = false;
@@ -254,8 +239,8 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	// == Enemy ==
 	double enemyX;
 	double enemyY;
-	double enemyWidth = 300; // TODO : geometrik oranla!
-	double enemyHeight = 300; // TODO : geometrik oranla!
+	double enemyWidth = 300; 
+	double enemyHeight = 300; 
 	double minEnemyX;
 	double maxEnemyX;
 	
@@ -284,12 +269,12 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	boolean isPowerBarRises = true;
 	double powerBarX = 0;
 	double powerBarY = 0;
-	double powerBarWidth; // default max width
-	double powerBarHeight; // default max width
+	double powerBarWidth; 
+	double powerBarHeight;
 	//double powerBarXGame;
 	double powerBarYGame;
 	// double powerBarWidthGame; do not need (width wont change when animation)
-	double powerBarHeightGame = 150; // when space is pressed, The size is determined by ratio the current power
+	double powerBarHeightGame = 50; // when space is pressed, The size is determined by ratio the current power
 	
 	// == Firing ==
 	int sample = 25; // draw sample 
@@ -385,8 +370,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 
 		// Create lives location
 		for(int i=0; i<lives; i++) {
-			// TODO: Heart yerine cannon yap!?
-			liveShape.add(new Heart((i)*50,0,heartWidth,heartHeight)); // i+1 de olabilir
+			liveShape.add(new Heart((i)*50,0,heartWidth,heartHeight)); 
 		}
 		
 		// == Enemy ==
@@ -394,12 +378,12 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		enemyHeightGame = enemyHeight;
 		
 		minEnemyX = width/4; // after width/4
-		maxEnemyX = width - enemyWidth;
+		maxEnemyX = width + enemyWidth/2;
 		
 		enemyLivesGame = enemyLives;
 		
 		// == Firing ==
-		fireHeightMax = 3 * height / 4; // TODO: tekrar bak
+		fireHeightMax = 3 * height / 4; 
 		
 		// == Power Bar Construct ==
 		powerBarWidth = width / 25;
@@ -442,14 +426,10 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	}
 
 	private void gameDraw(Graphics2D g2) {
-		// == Check Life Situation ==
+		// == Player Lost  ==
         if(lives < 1) {
-        	//score = 0;
-            //lives = 5;
-        	 //spawnEnemy();
-            enemyScaleFactor = 1;
             isPlayerLost = true;
-            backgroundImageGame = imageGrayScale(backgroundImage);
+            backgroundImageGame = imageGrayScale(backgroundImage); // grayscale background
         }
         
 	 	// == Draw Background == 
@@ -491,7 +471,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		FontRenderContext frc;
 		Font scoreLabelFont = new Font("Trebuchet",Font.PLAIN,24);	
 		String scoreLabel = "Score: " + String.valueOf(score);
-		g2.setPaint(Color.BLUE);
+		g2.setPaint(Color.RED);
 		g2.setFont(scoreLabelFont);
 		frc = g2.getFontRenderContext();
 		double scoreLabelWidth = scoreLabelFont.getStringBounds(scoreLabel,frc).getWidth();
@@ -520,7 +500,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		g2.setPaint(Color.BLUE);
 		g2.setFont(difficultyLabelFont);
 		double difficultyLabelWidth = difficultyLabelFont.getStringBounds(difficultyLabel,frc).getWidth();
-		double difficultyLabelHeight =  difficultyLabelFont.getStringBounds(difficultyLabel,frc).getHeight();
+		// double difficultyLabelHeight =  difficultyLabelFont.getStringBounds(difficultyLabel,frc).getHeight();
 		double difficultyLabelX = scoreLabelX - difficultyLabelWidth - 10; 
 		double difficultyLabelY = scoreLabelHeight;
 		g2.drawString(difficultyLabel,(int) difficultyLabelX, (int)difficultyLabelY);
@@ -592,7 +572,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 				
 				if(gameDiffucultyFactor >= 0.5) { // Medium and Hard
 					if(ifEnemyMovingRight) {
-						if(enemyX + enemyHeight + enemySpeed < width) {
+						if(enemyX + enemyWidth+ enemySpeed < maxEnemyX) {
 						enemyX += enemySpeed;
 						} else {
 						ifEnemyMovingRight = false;
@@ -640,7 +620,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		if(isEnemyShooted) {
 			firingLineList.clear(); // clear firing Line List
 			
-			if(shootedIteration < 5) {
+			if(shootedIteration < 3) {
 				enemyBodyTextureGame = imageGrayScale(enemyBodyTextureGame); // change image
 			
 				shootedIteration++;
@@ -760,8 +740,10 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 			if(enemy.contains(p)) {
 				isCannonBallFired = false;
 				firingIteration = 0;
-				isEnemyShooted = true;
-				enemyLivesGame--;
+				if(!isEnemyShooted) { // prevent multiple attacks during enemy shoot animation
+					isEnemyShooted = true;
+					enemyLivesGame--;
+				}
 				//System.out.println("Hit");
 				return;
 			}
@@ -855,6 +837,8 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 
 	private void spawnEnemy() {
 		
+		minEnemyX = ( width / 4 ) + score * 20;
+		
 		// min +  1 ( max - min) = max
 		// min + 0 (max - min) = min
 		enemyX = minEnemyX + (Math.random() * (maxEnemyX - minEnemyX)); // Math.random takes a number [0,1) range.
@@ -877,19 +861,18 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		enemyY= platformY-enemyHeightGame;
 		
 		// Next enemy Lives
-		// TODO: Score will increased by score and diffuculty factor
-		// score *  gameDiffucultyFactor 
+		// Score will increased by score and difficulty factor
 		enemyLives = 3 + (score/2) * gameDiffucultyFactor;
 		enemyLivesGame = enemyLives;
 		
 		// Enemy Speed
-		enemySpeed = 3 + ( score * gameDiffucultyFactor) +  (enemyLives-enemyLivesGame+1);
+		enemySpeed = 5 + ( score * gameDiffucultyFactor) +  (enemyLives-enemyLivesGame+1);
 				
 		// Resetting Enemy Texture
 		enemyBodyTextureGame = enemyBodyTexture;
 		enemyHeadTextureGame = enemyHeadTexture;
 		
-		System.out.println("Enemy Spawned X:"+enemyX+" Scaling factor:"+enemyScaleFactor);
+		// System.out.println("Enemy Spawned X:"+enemyX+" Scaling factor:"+enemyScaleFactor);
 	}
 
 	@Override
@@ -902,13 +885,11 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		if(!isPlayerLost) {
 		switch(e.getKeyCode()) {
 		case KeyEvent.VK_LEFT:
-			//lives--;
 			cannonX -= 5;
 			cannonAngle = 0;
 			keyPressed = true;
 			break;
 		case KeyEvent.VK_A:
-			//score++;
 			cannonX -= 5;
 			cannonAngle = 0;
 			keyPressed = true;
@@ -942,7 +923,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 				isSpacePressed = false; // stopping the bar animation and hide the bar
 				isCannonBallFired = true; // fire the ball
 				
-				powerBarHeightGame = 150; // set default power bar to 150
+				powerBarHeightGame = 50; // set default power bar to 100
 				isPowerBarRises = true;
 				break;
 		}
@@ -956,7 +937,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 		if(!keyPressed) { // check for cannon movement activity
 			p1 = e.getPoint();
 			//System.out.println("Angle "+cannonAngle+" cannonBallX= "+cannonBallX+" cannonBallY= "+cannonBallY);
-			cannonAngle = (Math.atan2(p1.y-y0,p1.x-x0) - Math.atan2(p.y-y0,p1.x-x0))/3; // TODO : Check that!
+			cannonAngle = (Math.atan2(p1.y-y0,p1.x-x0) - Math.atan2(p.y-y0,p1.x-x0))/3; 
 		}
 		}
 	}
@@ -1053,18 +1034,19 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 	  }
 }
 
+@SuppressWarnings("serial")
 class SplashPanel extends JPanel implements Runnable {
 
 	BufferedImage textImage = null;
 	BufferedImage instruction1 = null;
     BufferedImage instruction2 = null;
     
-	double backgroundX = 0;
+	double textBackgroundX = 0;
 	
 	public SplashPanel() {
 		setPreferredSize(new Dimension(600, 600));
 		
-		setBackground(Color.MAGENTA);
+		setBackground(Color.BLACK);
 		
 		URL url = getClass().getClassLoader().getResource("resources/creditsTexture.png");
 		try {
@@ -1092,25 +1074,75 @@ class SplashPanel extends JPanel implements Runnable {
 		super.paintComponent(g);
 		Graphics2D g2 = (Graphics2D) g;
 		
-	 	// == Draw Background == 
+		// == Game Header ==
+		FontRenderContext frc;
+		
+		g2.setPaint(Color.WHITE);
+		Font headLabelFont = new Font("Trebuchet",Font.BOLD,30);	
+		String headLabel = "Cannon Game";
+		g2.setFont(headLabelFont);
+		frc = g2.getFontRenderContext();
+		double textWidth = headLabelFont.getStringBounds(headLabel,frc).getWidth();
+		double textHeight =  headLabelFont.getStringBounds(headLabel,frc).getHeight();
+		g2.drawString(headLabel,(int) (300 - textWidth/2), (int) textHeight);
 	
 		// == Instructions == 
 		g2.drawImage (instruction1,30,50,null);
 		g2.drawImage (instruction2,400,250,null);
+		TexturePaint tp = new TexturePaint(textImage, new Rectangle2D.Double(-textBackgroundX, 0, 2000, 600));
+		g2.setPaint(tp);
+	
+	
+		Font instr3LabelFont = new Font("Trebuchet",Font.PLAIN,15);	
+		String instr3Label = "Use W D or ← → keys for move cannon.";
+		g2.setFont(instr3LabelFont);
+		frc = g2.getFontRenderContext();
+		textHeight =  instr3LabelFont.getStringBounds(instr3Label,frc).getHeight();
+		g2.drawString(instr3Label, 290 , 100 + (int) textHeight);
+		
+		
+		Font instr1LabelFont = new Font("Trebuchet",Font.PLAIN,15);	
+		String instr1Label = "Use mouse for change to cannon angle.";
+		g2.setFont(instr1LabelFont);
+		frc = g2.getFontRenderContext();
+		textHeight =  instr1LabelFont.getStringBounds(instr1Label,frc).getHeight();
+		g2.drawString(instr1Label,290, 150 + (int) textHeight);
+		
+
+		Font instr2LabelFont = new Font("Trebuchet",Font.PLAIN,15);	
+		String instr2Label = "Press and hold the Spacebar to set the power level";
+		String instr2Label2= "which you want and release when you want to fire cannon.";
+		g2.setFont(instr2LabelFont);
+		frc = g2.getFontRenderContext();
+		textWidth = instr2LabelFont.getStringBounds(instr2Label,frc).getWidth();
+		textHeight = instr2LabelFont.getStringBounds(instr2Label,frc).getHeight();
+		g2.drawString(instr2Label, 10, 325 - (int) textHeight);
+		textWidth = instr2LabelFont.getStringBounds(instr2Label2,frc).getWidth();
+		textHeight = instr2LabelFont.getStringBounds(instr2Label2,frc).getHeight();
+		g2.drawString(instr2Label2, 10, 350 - (int) textHeight);
+		
+		Font instr4LabelFont = new Font("Trebuchet",Font.PLAIN,15);	
+		String instr4Label = "The game will get harder as the score increases. ";
+		String instr4Label2= "You can change the game difficulty from within the game.";
+		g2.setFont(instr4LabelFont);
+		frc = g2.getFontRenderContext();
+		textWidth = instr4LabelFont.getStringBounds(instr4Label,frc).getWidth();
+		textHeight = instr4LabelFont.getStringBounds(instr4Label,frc).getHeight();
+		g2.drawString(instr4Label, 10, 425 - (int) textHeight);
+		textWidth = instr4LabelFont.getStringBounds(instr4Label2,frc).getWidth();
+		textHeight = instr4LabelFont.getStringBounds(instr4Label2,frc).getHeight();
+		g2.drawString(instr4Label2, 10, 450 - (int) textHeight);
 		
 		// == Credits ==
-		TexturePaint tp = new TexturePaint(textImage, new Rectangle2D.Double(-backgroundX, 0, 2000, 600));
-		g2.setPaint(tp); 
-		FontRenderContext frc;
+		 
 		Font headerLabelFont = new Font("Trebuchet",Font.PLAIN,18);	
 		String headerLabel = "Created by M. Emre Cebeci";
 		g2.setFont(headerLabelFont);
 		frc = g2.getFontRenderContext();
-		double textWidth = headerLabelFont.getStringBounds(headerLabel,frc).getWidth();
-		double textHeight =  600 - headerLabelFont.getStringBounds(headerLabel,frc).getHeight();
+		textWidth = headerLabelFont.getStringBounds(headerLabel,frc).getWidth();
+		textHeight =  600 - headerLabelFont.getStringBounds(headerLabel,frc).getHeight();
 		g2.drawString(headerLabel,(int) (300 - textWidth/2), (int) textHeight);
 		
-		//String headerLabel = "Easy de degisiklik";
 		
 		Thread thread = new Thread(this);
 		thread.start();
@@ -1120,7 +1152,7 @@ class SplashPanel extends JPanel implements Runnable {
 	@Override
 	public void run() {
 		while(true) {
-			checkBackgroundAnimation();
+			checkTextBackgroundAnimation();
 			
 			repaint(); // calls paintComponent!
 			
@@ -1132,11 +1164,11 @@ class SplashPanel extends JPanel implements Runnable {
 		}
 	}
 
-	private void checkBackgroundAnimation() {
-		if(backgroundX+1<2000)
-		backgroundX += 0.1;
+	private void checkTextBackgroundAnimation() {
+		if(textBackgroundX+1<2000)
+			textBackgroundX += 0.1;
 		else 
-			backgroundX = 0;
+			textBackgroundX = 0;
 		
 	}
 }
