@@ -3,7 +3,7 @@
  * 2021 - December
 */
 
-package project;
+package game;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -90,7 +90,7 @@ public class CannonGame extends JFrame implements ActionListener {
 		splashFrame.dispose(); // dispose the splash screen frame
 
 		JFrame frame = new CannonGame(); // To Drawing MenuBar
-		frame.setTitle("Cannon Game TEST");
+		frame.setTitle("Cannon Game");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); 
 		JPanel panel = gamePanel;
 		
@@ -1094,7 +1094,7 @@ class SplashPanel extends JPanel implements Runnable {
 	
 	
 		Font instr3LabelFont = new Font("Trebuchet",Font.PLAIN,15);	
-		String instr3Label = "Use W D or ← → keys for move cannon.";
+		String instr3Label = "Use W D or �? → keys for move cannon.";
 		g2.setFont(instr3LabelFont);
 		frc = g2.getFontRenderContext();
 		textHeight =  instr3LabelFont.getStringBounds(instr3Label,frc).getHeight();
