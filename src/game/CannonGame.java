@@ -1094,7 +1094,7 @@ class SplashPanel extends JPanel implements Runnable {
 	
 	
 		Font instr3LabelFont = new Font("Trebuchet",Font.PLAIN,15);	
-		String instr3Label = "Use W D or �? → keys for move cannon.";
+		String instr3Label = "Use W D or ← → keys for move cannon.";
 		g2.setFont(instr3LabelFont);
 		frc = g2.getFontRenderContext();
 		textHeight =  instr3LabelFont.getStringBounds(instr3Label,frc).getHeight();
