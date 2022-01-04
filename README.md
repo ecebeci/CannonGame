@@ -1,12 +1,15 @@
-<br />
-<div align="center">
-  <a href="https://github.com/ecebeci/CannonGame">
-    <img src="/bin/resources/logo.png" alt="Logo" width="80" height="80">
-  </a>
 
-# CannonGame
+
+<div align="center">
+  <h1> Cannon Game </h1>
+</div> 
+
+![Game Play Animation](https://i.imgur.com/vnooCsU.gif)
 Simple 2D Game with Java Graphics2D Library
 
- <img src="https://imgur.com/a/TGjhdDj" alt="Game Image">
+## Dependencies
+- JRE 16
+- Eclipse
 
-
+## License
+This project is licensed under the GPL License - see the LICENSE.md file for details
