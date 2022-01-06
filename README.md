@@ -5,14 +5,14 @@
 ![Game Play Animation](https://i.imgur.com/vnooCsU.gif)
 Simple 2D Game with Java Graphics2D Library
 
-## Java 
+## Program Topics 
 - Graphic primitives (without being Shapes) 
 - Strokes 
 - Paints 
 - Shapes of the Java 2D API 
 - Custom Shapes 
 - Interaction between Shapes 
-- ~~Geometric transformations applied to the coordinate system ~~
+- ~Geometric transformations applied to the coordinate system~
 - Geometric transformations applied to Shapes 
 - Transparency and Composition Rules 
 - ~Clipping~
