@@ -406,7 +406,7 @@ class GamePanel extends JPanel implements  Runnable, KeyListener, MouseListener,
 
 
 	public void paintComponent(Graphics g) { 
-		super.paintComponent(g); 
+		super.paintComponent(g); // JPanel in paintComponentini duzenler
 		Graphics2D g2 = (Graphics2D) g; // to usage Shape (Rectangle2D etc) classes
 		
 		if(AntiAliasing) {
